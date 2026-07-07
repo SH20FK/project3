@@ -1,7 +1,27 @@
-.gradle/
+# Build
 build/
-run/
-*.log
-*.class
 .gradle/
+run/
 graphify-out/
+*.class
+
+# Logs
+*.log
+
+# Linux system files
+.bashrc
+.fehbg
+.fluxbox/
+.foxrc/
+.jwmrc-numix-square
+.runit/
+.sudo_as_admin_successful
+.agents/
+
+# Temp/misc
+com/
+META-INF/
+nul
+Dump.java
+*.jpg
+*.png
