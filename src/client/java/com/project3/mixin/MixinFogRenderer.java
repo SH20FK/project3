@@ -1,5 +1,6 @@
 package com.project3.mixin;
 
+import com.project3.client.fog.GloomFogModifier;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.fog.FogRenderer;
 import net.minecraft.client.world.ClientWorld;

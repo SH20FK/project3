@@ -1,4 +1,4 @@
-package com.project3.mixin;
+package com.project3.client.fog;
 
 import net.minecraft.block.enums.CameraSubmersionType;
 import net.minecraft.client.render.Camera;
