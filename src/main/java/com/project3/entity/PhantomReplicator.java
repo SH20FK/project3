@@ -56,6 +56,17 @@ public class PhantomReplicator {
         "§eН█А█З█А█Д  Н█Е  С█М█О█Т█Р█И"
     };
 
+    private static final String[] ECHO_SYSTEM_MSGS = {
+        "§7[Сервер] §fВыполняется резервное копирование данных игрока %s...",
+        "§c[Ошибка] §fНе удалось прочитать файл %s.dat — повреждена контрольная сумма",
+        "§e[Предупреждение] §fАномальная активность в памяти игрока %s",
+        "§4[Критическая ошибка] §fОбнаружено 2 (два) активных экземпляра игрока %s",
+        "§7[Система] §fСинхронизация данных: %s — 0x%X байт повреждено",
+        "§4[СБОЙ] §fСущность игрока %s десинхронизирована. Рекомендуется перезагрузка",
+        "§8[Лог] §f%s: множественный вход в систему — возможен дубликат",
+        "§c[ОШИБКА: 0x7F4A] §fОбнаружена временная аномалия в потоке памяти игрока %s"
+    };
+
     public static class PlayerFrame {
         public final Vec3d pos;
         public final float yaw;
@@ -101,10 +112,13 @@ public class PhantomReplicator {
         public int gracePeriod = 40;
 
         public boolean stalkerWasVisible = false;
+        public int stalkerEyeContactTicks = 0;
+        public int stalkerBlinkTimer = 0;
         public int chatEchoMsgCount = 0;
         public int chatEchoNextMsg = 0;
         public int dejaVuLoops = 0;
         public int dejaVuMaxLoops = 3;
+        public boolean hasTriggeredScare = false;
 
         public enum NpcType {
             SCREAMER_SPRINT,
@@ -256,10 +270,10 @@ public class PhantomReplicator {
         }
         RECORDING_TIMER.put(uuid, ticks);
 
-        if (ticks < 100) {
+        if (ticks < 300) {
             List<PlayerFrame> list = CURRENT_RECORDING.computeIfAbsent(uuid, k -> new ArrayList<>());
             list.add(new PlayerFrame(player));
-        } else if (ticks == 100) {
+        } else if (ticks == 300) {
             List<PlayerFrame> list = CURRENT_RECORDING.remove(uuid);
             if (list != null && !list.isEmpty()) {
                 LAST_SAVED_RECORDING.put(uuid, list);
@@ -318,11 +332,11 @@ public class PhantomReplicator {
     // ─── Screamer Sprint Tick ───────────────────────────────────────────────
     private static void tickScreamerSprint(ActiveNpc activeNpc, ServerPlayerEntity npc, Vec3d npcPos, ServerWorld world) {
         Vec3d target = (activeNpc.runToPos != null) ? activeNpc.runToPos : activeNpc.targetPlayer.getEntityPos();
-        npc.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, target);
-        
         Vec3d dir = target.subtract(npcPos);
         double distance = dir.length();
+        double distToPlayer = activeNpc.targetPlayer.getEntityPos().squaredDistanceTo(npcPos);
 
+        npc.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, target);
         double currentSpeed = (distance < 12.0) ? activeNpc.speed * 2.5 : activeNpc.speed;
 
         if (distance > 0.1) {
@@ -333,49 +347,59 @@ public class PhantomReplicator {
         }
 
         npc.setSprinting(true);
-
         broadcastToViewers(npc, EntityPositionSyncS2CPacket.create(npc));
         broadcastToViewers(npc, new EntitySetHeadYawS2CPacket(npc, (byte) (npc.getHeadYaw() * 256.0F / 360.0F)));
 
-        int footstepInterval = (distance < 12.0) ? 3 : 6;
+        // Footstep sounds — running on different surfaces
+        int footstepInterval = (distance < 12.0) ? 2 : 4;
         if (activeNpc.ticksLeft % footstepInterval == 0) {
             world.playSound(null, npcPos.x, npcPos.y, npcPos.z,
-                    net.minecraft.sound.SoundEvents.ENTITY_PLAYER_HURT_SWEET_BERRY_BUSH, net.minecraft.sound.SoundCategory.HOSTILE, 1.5f, 0.7f);
+                    SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, SoundCategory.HOSTILE, 0.8f, 0.9f);
         }
 
-        if (activeNpc.ticksLeft % 10 == 0) {
+        // Heartbeat on target — gets faster as screamer gets closer
+        if (distToPlayer < 20.0 * 20.0 && activeNpc.ticksLeft % (distToPlayer < 10.0 * 10.0 ? 5 : 10) == 0) {
+            float hbVol = (float) Math.min(1.0, 1.0 - Math.sqrt(distToPlayer) / 30.0) + 0.3f;
             world.playSound(null, activeNpc.targetPlayer.getX(), activeNpc.targetPlayer.getY(), activeNpc.targetPlayer.getZ(),
-                    SoundEvents.ENTITY_WARDEN_HEARTBEAT, SoundCategory.HOSTILE, 0.6f, 1.5f);
+                    SoundEvents.ENTITY_WARDEN_HEARTBEAT, SoundCategory.HOSTILE, hbVol, 1.8f);
         }
 
-        boolean vanish = false;
+        // Run PAST player, not vanish on contact
+        boolean shouldVanish = false;
         if (activeNpc.gracePeriod <= 0) {
-            double distToPlayer = activeNpc.targetPlayer.getEntityPos().squaredDistanceTo(npc.getEntityPos());
-            vanish = distToPlayer < 3.0 * 3.0;
-            if (!vanish) {
+            // Vanishes after passing through player (distance past them)
+            if (activeNpc.runToPos != null) {
+                double distToRunTarget = npcPos.squaredDistanceTo(activeNpc.runToPos);
+                if (distToRunTarget < 3.0) shouldVanish = true;
+            } else if (distToPlayer < 3.0 * 3.0) {
+                // Ran through player — continue past, then vanish
+                shouldVanish = true;
+            }
+            // Also vanish if player looks directly at it (eye contact = too predictable)
+            if (!shouldVanish) {
                 Vec3d lookVec = activeNpc.targetPlayer.getRotationVec(1.0f).normalize();
-                Vec3d toNpc = npc.getEntityPos().subtract(activeNpc.targetPlayer.getEntityPos()).normalize();
-                double dot = lookVec.dotProduct(toNpc);
-                if (dot > 0.98) {
-                    vanish = true;
+                Vec3d toNpc = npcPos.subtract(activeNpc.targetPlayer.getEntityPos()).normalize();
+                if (lookVec.dotProduct(toNpc) > 0.98) {
+                    shouldVanish = true;
                 }
             }
         }
 
-        if (vanish) {
+        if (shouldVanish) {
             ServerPlayerEntity vanishTarget = activeNpc.targetPlayer;
-            com.project3.Project3Mod.schedule(0, () -> {
+            // Camera shake on vanish
+            Project3Mod.schedule(0, () -> {
                 if (vanishTarget.isAlive() && vanishTarget.networkHandler != null) {
                     ServerPlayNetworking.send(vanishTarget, new com.project3.network.CameraRotatePayload(
-                            (vanishTarget.getRandom().nextFloat() - 0.5f) * 8.0f,
-                            (vanishTarget.getRandom().nextFloat() - 0.5f) * 4.0f));
+                            (vanishTarget.getRandom().nextFloat() - 0.5f) * 6.0f,
+                            (vanishTarget.getRandom().nextFloat() - 0.5f) * 3.0f));
                 }
             });
             destroyNpc(activeNpc);
             world.playSound(null, npcPos.x, npcPos.y + 1.0, npcPos.z,
-                    SoundEvents.BLOCK_FIRE_EXTINGUISH, SoundCategory.HOSTILE, 2.0f, 0.2f);
+                    SoundEvents.ENTITY_PLAYER_BREATH, SoundCategory.HOSTILE, 2.0f, 0.8f);
             world.spawnParticles(ParticleTypes.LARGE_SMOKE,
-                    npcPos.x, npcPos.y + 1.0, npcPos.z, 80, 0.5, 0.5, 0.5, 0.15);
+                    npcPos.x, npcPos.y + 1.0, npcPos.z, 40, 0.3, 0.3, 0.3, 0.1);
             ACTIVE_NPCS.remove(activeNpc);
         } else {
             activeNpc.gracePeriod--;
@@ -387,6 +411,7 @@ public class PhantomReplicator {
         Vec3d target = activeNpc.targetPlayer.getEntityPos();
         Vec3d dir = target.subtract(npcPos);
         double distToPlayer = dir.length();
+        activeNpc.stalkerBlinkTimer++;
 
         Vec3d lookVec = activeNpc.targetPlayer.getRotationVec(1.0f).normalize();
         Vec3d toStalker = npcPos.subtract(activeNpc.targetPlayer.getEntityPos()).normalize();
@@ -395,24 +420,66 @@ public class PhantomReplicator {
 
         if (isBeingLookedAt) {
             activeNpc.stalkerWasVisible = true;
+            activeNpc.stalkerEyeContactTicks++;
             npc.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, target);
+
+            // Creepy head tilt after 2 seconds of eye contact
+            if (activeNpc.stalkerEyeContactTicks > 40 && activeNpc.stalkerEyeContactTicks % 20 == 0) {
+                float tiltAmount = (activeNpc.stalkerEyeContactTicks % 80 == 0) ? 30.0f : -30.0f;
+                npc.setHeadYaw(npc.getHeadYaw() + tiltAmount);
+                npc.setBodyYaw(npc.getBodyYaw() + tiltAmount);
+                world.playSound(null, npcPos.x, npcPos.y, npcPos.z,
+                        SoundEvents.ENTITY_ITEM_FRAME_ROTATE_ITEM, SoundCategory.HOSTILE, 0.3f, 0.1f);
+            }
+
+            // Reach during eye contact → jumpscare
+            if (distToPlayer < 2.5 && !activeNpc.hasTriggeredScare) {
+                activeNpc.hasTriggeredScare = true;
+                triggerStalkerJumpscare(activeNpc);
+                return;
+            }
+
             broadcastToViewers(npc, new EntitySetHeadYawS2CPacket(npc, (byte) (npc.getHeadYaw() * 256.0F / 360.0F)));
+            broadcastToViewers(npc, EntityPositionSyncS2CPacket.create(npc));
         } else {
             activeNpc.stalkerWasVisible = false;
+            activeNpc.stalkerEyeContactTicks = 0;
 
-            if (distToPlayer > 5.0) {
-                Vec3d newPos = computeNextStep(world, npcPos, target, activeNpc.speed * 2.0);
+            if (distToPlayer > 4.0) {
+                // Fast approach when not looked at (speed * 3 = ~1.05)
+                double approachSpeed = (distToPlayer > 15.0) ? activeNpc.speed * 3.0 : activeNpc.speed * 1.8;
+                Vec3d newPos = computeNextStep(world, npcPos, target, approachSpeed);
                 if (!newPos.equals(npcPos)) {
                     npc.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, target);
                     syncPositionAngles(npc, newPos, npc.getYaw(), npc.getPitch());
                 }
-            } else if (distToPlayer < 5.0) {
-                Vec3d behindVec = activeNpc.targetPlayer.getRotationVec(1.0f).normalize().multiply(-12.0);
-                Vec3d teleportPos = activeNpc.targetPlayer.getEntityPos().add(behindVec);
-                Vec3d safePos = findGroundPos(world, teleportPos, 3);
-                syncPositionAngles(npc, safePos, npc.getYaw(), npc.getPitch());
-                world.playSound(null, npcPos.x, npcPos.y + 1.0, npcPos.z,
-                        SoundEvents.ENTITY_ENDERMAN_TELEPORT, SoundCategory.HOSTILE, 0.5f, 1.5f);
+
+                // Occasional blink teleport (weeping angel style) - close gap instantly
+                if (distToPlayer < 20.0 && activeNpc.stalkerBlinkTimer > 40 && world.random.nextFloat() < 0.01f) {
+                    Vec3d blinkTarget = target.subtract(toStalker.multiply(4.0));
+                    Vec3d blinkPos = findGroundPos(world, blinkTarget, 2);
+                    if (blinkPos.squaredDistanceTo(target) < distToPlayer * distToPlayer) {
+                        syncPositionAngles(npc, blinkPos, npc.getYaw(), npc.getPitch());
+                        world.playSound(null, blinkPos.x, blinkPos.y, blinkPos.z,
+                                SoundEvents.ENTITY_ENDERMAN_TELEPORT, SoundCategory.HOSTILE, 0.3f, 2.0f);
+                        activeNpc.stalkerBlinkTimer = 0;
+                    }
+                }
+            } else {
+                // Close enough - trigger scare
+                if (!activeNpc.hasTriggeredScare) {
+                    activeNpc.hasTriggeredScare = true;
+                    triggerStalkerJumpscare(activeNpc);
+                    return;
+                }
+                // After scare, teleport far away for another approach
+                double theta = world.random.nextDouble() * 2 * Math.PI;
+                double farDist = 25.0 + world.random.nextDouble() * 15.0;
+                Vec3d farPos = target.add(Math.cos(theta) * farDist, 0, Math.sin(theta) * farDist);
+                Vec3d safeFarPos = findGroundPos(world, farPos, 5);
+                syncPositionAngles(npc, safeFarPos, npc.getYaw(), npc.getPitch());
+                activeNpc.hasTriggeredScare = false;
+                activeNpc.gracePeriod = 60;
             }
 
             npc.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, target);
@@ -420,43 +487,96 @@ public class PhantomReplicator {
             broadcastToViewers(npc, new EntitySetHeadYawS2CPacket(npc, (byte) (npc.getHeadYaw() * 256.0F / 360.0F)));
         }
 
-        if (activeNpc.ticksLeft % 20 == 0 && distToPlayer < 30) {
-            float volume = (float) (0.3 + (30.0 - distToPlayer) / 30.0 * 1.2);
-            float pitch = 0.4f + (float)(distToPlayer / 30.0) * 0.3f;
+        // Creepy breathing - gets louder closer
+        if (activeNpc.ticksLeft % 15 == 0 && distToPlayer < 30) {
+            float volume = (float) (0.4 + Math.max(0, 1.0 - distToPlayer / 30.0) * 1.6);
+            float pitch = 0.3f + (float)(distToPlayer / 30.0) * 0.3f;
             world.playSound(null, npcPos.x, npcPos.y, npcPos.z,
                     SoundEvents.ENTITY_PLAYER_BREATH, SoundCategory.HOSTILE, volume, pitch);
         }
 
-        if (distToPlayer < 3.0 && isBeingLookedAt) {
-            destroyNpc(activeNpc);
-            world.playSound(null, npcPos.x, npcPos.y + 1.0, npcPos.z,
-                    SoundEvents.ENTITY_ENDERMAN_TELEPORT, SoundCategory.HOSTILE, 1.0f, 0.3f);
-            world.spawnParticles(ParticleTypes.LARGE_SMOKE,
-                    npcPos.x, npcPos.y + 1.0, npcPos.z, 50, 0.3, 0.3, 0.3, 0.1);
-            ACTIVE_NPCS.remove(activeNpc);
+        // Creaking sound when close and invisible
+        if (!isBeingLookedAt && distToPlayer < 10.0 && activeNpc.ticksLeft % 30 == 0) {
+            world.playSound(null, npcPos.x, npcPos.y, npcPos.z,
+                    SoundEvents.BLOCK_BIG_DRIPLEAF_TILT_DOWN, SoundCategory.HOSTILE, 0.6f, 0.2f);
         }
+    }
+
+    private static void triggerStalkerJumpscare(ActiveNpc activeNpc) {
+        ServerPlayerEntity target = activeNpc.targetPlayer;
+        ServerWorld world = (ServerWorld) target.getEntityWorld();
+        Vec3d npcPos = activeNpc.npc.getEntityPos();
+
+        // Damage + blindness + nausea
+        target.damage(world, world.getDamageSources().magic(), 4.0f);
+        target.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(
+                net.minecraft.entity.effect.StatusEffects.BLINDNESS, 100, 0, false, false, true));
+        target.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(
+                net.minecraft.entity.effect.StatusEffects.NAUSEA, 60, 1, false, false, true));
+
+        // Camera shake
+        Project3Mod.schedule(0, () -> {
+            if (target.isAlive() && target.networkHandler != null) {
+                net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(target,
+                        new com.project3.network.CameraRotatePayload(
+                                (target.getRandom().nextFloat() - 0.5f) * 12.0f,
+                                (target.getRandom().nextFloat() - 0.5f) * 6.0f));
+            }
+        });
+
+        // Shader flash
+        net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(target,
+                new com.project3.network.ShaderFlashPayload());
+
+        // Loud scream sound AT target position (feels like it's in their head)
+        world.playSound(null, target.getX(), target.getY(), target.getZ(),
+                SoundEvents.ENTITY_GHAST_SCREAM, SoundCategory.HOSTILE, 1.5f, 1.2f);
+
+        // Stalker disappears with smoke
+        world.spawnParticles(ParticleTypes.LARGE_SMOKE,
+                npcPos.x, npcPos.y + 1.0, npcPos.z, 60, 0.5, 0.5, 0.5, 0.15);
+        world.playSound(null, npcPos.x, npcPos.y, npcPos.z,
+                SoundEvents.ENTITY_ENDERMAN_TELEPORT, SoundCategory.HOSTILE, 1.0f, 0.3f);
+        destroyNpc(activeNpc);
+        ACTIVE_NPCS.remove(activeNpc);
     }
 
     // ─── Dead Scenario Tick ─────────────────────────────────────────────────
     private static void tickDeadScenario(ActiveNpc activeNpc, ServerPlayerEntity npc, Vec3d npcPos, ServerWorld world) {
+        ServerPlayerEntity target = activeNpc.targetPlayer;
+
         if (activeNpc.replayFrames != null && !activeNpc.replayFrames.isEmpty()) {
             int totalFrames = activeNpc.replayFrames.size();
+            int frameTicks = activeNpc.ticksLeft > 200 ? 200 : activeNpc.ticksLeft;
+            float lifePercent = 1.0f - ((float) frameTicks / 200.0f);
 
-            float lifePercent = 1.0f - ((float) activeNpc.ticksLeft / 100.0f);
             boolean shouldPause = (lifePercent > 0.24f && lifePercent < 0.30f) ||
                                   (lifePercent > 0.74f && lifePercent < 0.80f);
 
+            // Random head snap during replay (10% chance at certain intervals)
+            boolean headSnap = !shouldPause && activeNpc.ticksLeft % 30 == 0 && world.random.nextFloat() < 0.3f;
+
             if (shouldPause) {
-                npc.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, activeNpc.targetPlayer.getEntityPos());
+                npc.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, target.getEntityPos());
                 broadcastToViewers(npc, new EntitySetHeadYawS2CPacket(npc, (byte) (npc.getHeadYaw() * 256.0F / 360.0F)));
                 broadcastToViewers(npc, EntityPositionSyncS2CPacket.create(npc));
 
                 if (activeNpc.ticksLeft % 4 == 0) {
-                    world.spawnParticles(ParticleTypes.ELECTRIC_SPARK,
-                            npcPos.x, npcPos.y + 1.6, npcPos.z, 2, 0.2, 0.2, 0.2, 0.01);
+                    world.spawnParticles(ParticleTypes.END_ROD,
+                            npcPos.x, npcPos.y + 1.6, npcPos.z, 1, 0.1, 0.1, 0.1, 0.01);
                 }
+            } else if (headSnap) {
+                // Head snap toward player during replay
+                npc.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, target.getEntityPos());
+                float snapYaw = npc.getHeadYaw() + 180.0f;
+                npc.setHeadYaw(snapYaw);
+                npc.setBodyYaw(snapYaw);
+                broadcastToViewers(npc, new EntitySetHeadYawS2CPacket(npc, (byte) (snapYaw * 256.0F / 360.0F)));
+                broadcastToViewers(npc, EntityPositionSyncS2CPacket.create(npc));
+                world.playSound(null, npcPos.x, npcPos.y, npcPos.z,
+                        SoundEvents.BLOCK_BONE_BLOCK_STEP, SoundCategory.HOSTILE, 0.3f, 0.2f);
             } else {
-                activeNpc.replayIndex = (100 - activeNpc.ticksLeft) % totalFrames;
+                activeNpc.replayIndex = Math.min(frameTicks * totalFrames / 200, totalFrames - 1);
                 PlayerFrame frame = activeNpc.replayFrames.get(activeNpc.replayIndex);
 
                 syncPosition(npc, frame.pos.x, frame.pos.y, frame.pos.z, frame.yaw, frame.pitch);
@@ -488,12 +608,20 @@ public class PhantomReplicator {
             }
         }
 
-        if (activeNpc.ticksLeft <= 20 && activeNpc.ticksLeft % 5 == 0) {
+        if (activeNpc.ticksLeft <= 30 && activeNpc.ticksLeft % 5 == 0) {
             world.playSound(null, npcPos.x, npcPos.y, npcPos.z,
                     SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.HOSTILE, 0.8f, 0.3f);
         }
 
         if (activeNpc.ticksLeft == 1) {
+            // Final scare: head snap toward player before vanishing
+            npc.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, target.getEntityPos());
+            broadcastToViewers(npc, new EntitySetHeadYawS2CPacket(npc, (byte) (npc.getHeadYaw() * 256.0F / 360.0F)));
+            broadcastToViewers(npc, EntityPositionSyncS2CPacket.create(npc));
+
+            world.playSound(null, npcPos.x, npcPos.y, npcPos.z,
+                    SoundEvents.ENTITY_GHAST_SCREAM, SoundCategory.HOSTILE, 0.5f, 0.3f);
+
             for (int i = 0; i < 40; i++) {
                 double px = npcPos.x + (world.random.nextDouble() - 0.5) * 1.2;
                 double py = npcPos.y + 0.5 + world.random.nextDouble() * 1.5;
@@ -519,6 +647,7 @@ public class PhantomReplicator {
 
     // ─── Chat Echo Tick ─────────────────────────────────────────────────────
     private static void tickChatEcho(ActiveNpc activeNpc, ServerPlayerEntity npc, Vec3d npcPos, ServerWorld world) {
+        ServerPlayerEntity target = activeNpc.targetPlayer;
         if (activeNpc.gracePeriod > 0) {
             activeNpc.gracePeriod--;
         }
@@ -526,8 +655,8 @@ public class PhantomReplicator {
         if (activeNpc.speed != 999.0) {
             float lifePercent = 1.0f - ((float) activeNpc.ticksLeft / 600.0f);
             float targetYaw = (float) Math.toDegrees(Math.atan2(
-                    activeNpc.targetPlayer.getZ() - npcPos.z,
-                    activeNpc.targetPlayer.getX() - npcPos.x)) - 90.0f;
+                    target.getZ() - npcPos.z,
+                    target.getX() - npcPos.x)) - 90.0f;
             float backYaw = targetYaw + 180.0f;
 
             float currentYaw = backYaw + (targetYaw - backYaw) * Math.min(lifePercent * 1.5f, 1.0f);
@@ -539,25 +668,37 @@ public class PhantomReplicator {
             broadcastToViewers(npc, EntityPositionSyncS2CPacket.create(npc));
 
             if (activeNpc.chatEchoMsgCount < 5 && activeNpc.ticksLeft < (600 - activeNpc.chatEchoNextMsg)) {
-                String phrase = GLITCHED_PHRASES[world.random.nextInt(GLITCHED_PHRASES.length)];
-                world.getServer().getPlayerManager().broadcast(
-                        Text.literal("<" + activeNpc.targetPlayer.getGameProfile().name() + "> " + phrase), false);
                 activeNpc.chatEchoMsgCount++;
                 activeNpc.chatEchoNextMsg = 160 + world.random.nextInt(80);
 
+                // 50% chance: glitched chat message (target ONLY), 50% chance: fake system message
+                if (world.random.nextBoolean()) {
+                    String phrase = GLITCHED_PHRASES[world.random.nextInt(GLITCHED_PHRASES.length)];
+                    target.sendMessage(Text.literal("<" + target.getGameProfile().name() + "> " + phrase), false);
+                } else {
+                    String sysMsg = ECHO_SYSTEM_MSGS[world.random.nextInt(ECHO_SYSTEM_MSGS.length)];
+                    String formatted;
+                    if (sysMsg.contains("%s")) {
+                        long corruptBytes = (long)(world.random.nextDouble() * 0xFFFF);
+                        formatted = String.format(sysMsg, target.getGameProfile().name(), corruptBytes);
+                    } else {
+                        formatted = String.format(sysMsg, target.getGameProfile().name());
+                    }
+                    target.sendMessage(Text.literal(formatted), false);
+                }
+
                 world.playSound(null, npcPos.x, npcPos.y, npcPos.z,
-                        SoundEvents.ENTITY_ITEM_FRAME_BREAK, SoundCategory.HOSTILE, 0.8f, 1.5f);
+                        SoundEvents.ENTITY_ITEM_FRAME_BREAK, SoundCategory.HOSTILE, 0.6f, 1.5f);
             }
 
             boolean vanish = false;
             if (activeNpc.gracePeriod <= 0) {
-                double distToPlayer = activeNpc.targetPlayer.getEntityPos().squaredDistanceTo(npcPos);
+                double distToPlayer = target.getEntityPos().squaredDistanceTo(npcPos);
                 vanish = distToPlayer < 4.0 * 4.0;
                 if (!vanish) {
-                    Vec3d lookVec = activeNpc.targetPlayer.getRotationVec(1.0f).normalize();
-                    Vec3d toNpc = npcPos.subtract(activeNpc.targetPlayer.getEntityPos()).normalize();
-                    double dot = lookVec.dotProduct(toNpc);
-                    if (dot > 0.95) {
+                    Vec3d lookVec = target.getRotationVec(1.0f).normalize();
+                    Vec3d toNpc = npcPos.subtract(target.getEntityPos()).normalize();
+                    if (lookVec.dotProduct(toNpc) > 0.95) {
                         vanish = true;
                     }
                 }
@@ -572,10 +713,9 @@ public class PhantomReplicator {
                 world.playSound(null, npcPos.x, npcPos.y + 1.0, npcPos.z,
                         SoundEvents.ENTITY_ITEM_FRAME_BREAK, SoundCategory.HOSTILE, 1.5f, 0.5f);
 
-                for (ServerPlayerEntity viewer : world.getPlayers()) {
-                    if (viewer.getEntityPos().squaredDistanceTo(npcPos) < 64 * 64) {
-                        ServerPlayNetworking.send(viewer, new PhantomHeadSnapPayload(npc.getId()));
-                    }
+                // Head snap only for the target player
+                if (target.networkHandler != null) {
+                    ServerPlayNetworking.send(target, new PhantomHeadSnapPayload(npc.getId()));
                 }
             }
         } else if (activeNpc.ticksLeft == 1) {
@@ -590,14 +730,15 @@ public class PhantomReplicator {
 
     // ─── Static Tick ────────────────────────────────────────────────────────
     private static void tickStatic(ActiveNpc activeNpc, ServerPlayerEntity npc, Vec3d npcPos, ServerWorld world) {
+        ServerPlayerEntity target = activeNpc.targetPlayer;
         npc.setSprinting(false);
-        Vec3d target = activeNpc.targetPlayer.getEntityPos();
-        Vec3d dir = target.subtract(npcPos);
+        Vec3d targetPos = target.getEntityPos();
+        Vec3d dir = targetPos.subtract(npcPos);
         double distToPlayer = dir.length();
 
-        double dx = target.x - npcPos.x;
-        double dy = target.y + activeNpc.targetPlayer.getStandingEyeHeight() - (npcPos.y + npc.getStandingEyeHeight());
-        double dz = target.z - npcPos.z;
+        double dx = targetPos.x - npcPos.x;
+        double dy = targetPos.y + target.getStandingEyeHeight() - (npcPos.y + npc.getStandingEyeHeight());
+        double dz = targetPos.z - npcPos.z;
         double dh = Math.sqrt(dx * dx + dz * dz);
         float yaw = (float) Math.toDegrees(Math.atan2(dz, dx)) - 90.0f;
         float pitch = (float) -Math.toDegrees(Math.atan2(dy, dh));
@@ -607,45 +748,67 @@ public class PhantomReplicator {
         npc.setHeadYaw(yaw);
         npc.setBodyYaw(yaw);
 
-        Vec3d lookVec = activeNpc.targetPlayer.getRotationVec(1.0f).normalize();
-        Vec3d toStatic = npcPos.subtract(activeNpc.targetPlayer.getEntityPos()).normalize();
+        Vec3d lookVec = target.getRotationVec(1.0f).normalize();
+        Vec3d toStatic = npcPos.subtract(targetPos).normalize();
         double dot = lookVec.dotProduct(toStatic);
         boolean isBeingLookedAt = dot > 0.95;
 
+        // When looked at: spawn a SECOND copy behind the player
+        if (isBeingLookedAt && distToPlayer < 12.0 && activeNpc.ticksLeft % 100 == 0 && !activeNpc.hasTriggeredScare) {
+            activeNpc.hasTriggeredScare = true;
+            Vec3d behindPos = targetPos.subtract(lookVec.multiply(3.0));
+            Vec3d safeBehind = findGroundPos(world, behindPos, 2);
+            spawnStaticNpcAt(target, safeBehind);
+            target.sendMessage(Text.literal("§7..."), false);  // subtle text cue
+        }
+
         if (!isBeingLookedAt && distToPlayer > 4.0) {
-            Vec3d newPos = computeNextStep(world, npcPos, target, 0.15);
+            Vec3d newPos = computeNextStep(world, npcPos, targetPos, 0.15);
             if (!newPos.equals(npcPos)) {
                 syncPositionAngles(npc, newPos, yaw, pitch);
             }
-
-            if (activeNpc.ticksLeft % 8 == 0) {
-                world.playSound(null, npcPos.x, npcPos.y, npcPos.z,
-                        SoundEvents.ENTITY_PLAYER_HURT_SWEET_BERRY_BUSH, SoundCategory.HOSTILE, 0.6f, 0.4f);
-            }
         }
 
-        if (distToPlayer < 20 && activeNpc.ticksLeft % 40 == 0) {
-            float volume = (float) (0.2 + (20.0 - distToPlayer) / 20.0 * 0.8);
-            world.playSound(null, npcPos.x, npcPos.y, npcPos.z,
-                    SoundEvents.ENTITY_PLAYER_BREATH, SoundCategory.HOSTILE, volume, 0.2f);
-        }
-
-        if (distToPlayer < 8.0 && activeNpc.ticksLeft % 10 == 0) {
-            com.project3.Project3Mod.schedule(0, () -> {
-                if (activeNpc.targetPlayer.isAlive() && activeNpc.targetPlayer.networkHandler != null) {
-                    ServerPlayNetworking.send(activeNpc.targetPlayer, new com.project3.network.CameraRotatePayload(
-                            (activeNpc.targetPlayer.getRandom().nextFloat() - 0.5f) * 3.0f,
-                            0.0f));
+        // Camera slowly pulled toward statue when looked at
+        if (isBeingLookedAt && distToPlayer < 12.0 && activeNpc.ticksLeft % 5 == 0) {
+            Project3Mod.schedule(0, () -> {
+                if (target.isAlive() && target.networkHandler != null) {
+                    float driftYaw = (yaw - target.getYaw()) * 0.02f;
+                    float driftPitch = (pitch - target.getPitch()) * 0.02f;
+                    ServerPlayNetworking.send(target, new com.project3.network.CameraRotatePayload(
+                            driftYaw * 0.5f, driftPitch * 0.3f));
                 }
             });
         }
 
-        if (activeNpc.ticksLeft % 6 == 0) {
-            world.spawnParticles(ParticleTypes.ELECTRIC_SPARK,
-                    npcPos.x, npcPos.y + 1.5, npcPos.z, 1, 0.3, 0.5, 0.3, 0.02);
+        // Creaking sounds when looked at
+        if (isBeingLookedAt && activeNpc.ticksLeft % 30 == 0) {
+            world.playSound(null, npcPos.x, npcPos.y, npcPos.z,
+                    SoundEvents.BLOCK_CHAIN_BREAK, SoundCategory.HOSTILE, 0.4f, 0.1f);
         }
 
-        if (isBeingLookedAt && distToPlayer < 6.0) {
+        // Breathing when not looked at
+        if (!isBeingLookedAt && distToPlayer < 20 && activeNpc.ticksLeft % 40 == 0) {
+            float volume = (float) (0.2 + (20.0 - distToPlayer) / 20.0 * 0.8);
+            world.playSound(null, npcPos.x, npcPos.y, npcPos.z,
+                    SoundEvents.ENTITY_PLAYER_BREATH, SoundCategory.HOSTILE, volume, 0.15f);
+        }
+
+        // Glitched particles (replaced electric spark with smoke and end rod particles for more subtlety)
+        if (activeNpc.ticksLeft % 10 == 0) {
+            world.spawnParticles(ParticleTypes.MYCELIUM,
+                    npcPos.x, npcPos.y + 1.5, npcPos.z, 1, 0.3, 0.5, 0.3, 0.01);
+        }
+        if (activeNpc.ticksLeft % 3 == 0 && world.random.nextFloat() < 0.1f) {
+            world.spawnParticles(ParticleTypes.END_ROD,
+                    npcPos.x + (world.random.nextDouble() - 0.5) * 0.5,
+                    npcPos.y + 1.0 + world.random.nextDouble() * 0.5,
+                    npcPos.z + (world.random.nextDouble() - 0.5) * 0.5,
+                    1, 0, 0, 0, 0.01);
+        }
+
+        // When player gets close and looks at it: disappear with scare
+        if (isBeingLookedAt && distToPlayer < 3.0) {
             destroyNpc(activeNpc);
             world.playSound(null, npcPos.x, npcPos.y + 1.0, npcPos.z,
                     SoundEvents.ENTITY_ELDER_GUARDIAN_CURSE, SoundCategory.HOSTILE, 1.5f, 0.5f);
@@ -660,6 +823,22 @@ public class PhantomReplicator {
                 broadcastToViewers(npc, new EntityTrackerUpdateS2CPacket(npc.getId(), dirtyEntries));
             }
         }
+    }
+
+    private static void spawnStaticNpcAt(ServerPlayerEntity target, Vec3d pos) {
+        ServerWorld world = (ServerWorld) target.getEntityWorld();
+        ServerPlayerEntity npc = createNpc(target, world, pos);
+        double dx = target.getX() - pos.x;
+        double dz = target.getZ() - pos.z;
+        float yaw = (float) Math.toDegrees(Math.atan2(dz, dx)) - 90.0f;
+        npc.setYaw(yaw);
+        npc.setHeadYaw(yaw);
+        npc.setBodyYaw(yaw);
+        renderNpc(npc, world, pos);
+        ActiveNpc clone = new ActiveNpc(npc, target, ActiveNpc.NpcType.STATIC, 200);
+        ACTIVE_NPCS.add(clone);
+        world.playSound(null, pos.x, pos.y, pos.z,
+                SoundEvents.ENTITY_ENDERMAN_TELEPORT, SoundCategory.HOSTILE, 0.3f, 0.1f);
     }
 
     // ─── Deja Vu Tick ───────────────────────────────────────────────────────
@@ -745,10 +924,13 @@ public class PhantomReplicator {
         ActiveNpc activeNpc = new ActiveNpc(npc, targetPlayer, ActiveNpc.NpcType.SCREAMER_SPRINT, 200);
         activeNpc.speed = 0.4;
         activeNpc.runToPos = runToPos;
+        activeNpc.gracePeriod = 20;
         ACTIVE_NPCS.add(activeNpc);
 
+        // Silent spawn — subtle buildup, no loud scream
+        // Subtle sound in distance
         world.playSound(null, npc.getX(), npc.getY(), npc.getZ(),
-                net.minecraft.sound.SoundEvents.ENTITY_GHAST_SCREAM, net.minecraft.sound.SoundCategory.HOSTILE, 2.0f, 0.8f);
+                SoundEvents.ENTITY_PLAYER_BREATH, SoundCategory.HOSTILE, 0.3f, 0.6f);
     }
 
     public static void spawnDeadScenario(ServerPlayerEntity targetPlayer) {
@@ -766,7 +948,7 @@ public class PhantomReplicator {
 
         renderNpc(npc, world, spawnPos);
 
-        ActiveNpc activeNpc = new ActiveNpc(npc, targetPlayer, ActiveNpc.NpcType.DEAD_SCENARIO, 100);
+        ActiveNpc activeNpc = new ActiveNpc(npc, targetPlayer, ActiveNpc.NpcType.DEAD_SCENARIO, 200);
         activeNpc.replayFrames = cachedFrames;
         ACTIVE_NPCS.add(activeNpc);
     }
@@ -816,8 +998,9 @@ public class PhantomReplicator {
         activeNpc.chatEchoNextMsg = 100 + targetPlayer.getRandom().nextInt(60);
         ACTIVE_NPCS.add(activeNpc);
 
+        // First message: only target sees it
         String phrase = GLITCHED_PHRASES[targetPlayer.getRandom().nextInt(GLITCHED_PHRASES.length)];
-        world.getServer().getPlayerManager().broadcast(Text.literal("<" + targetPlayer.getGameProfile().name() + "> " + phrase), false);
+        targetPlayer.sendMessage(Text.literal("<" + targetPlayer.getGameProfile().name() + "> " + phrase), false);
         activeNpc.chatEchoMsgCount = 1;
     }
 
@@ -869,12 +1052,12 @@ public class PhantomReplicator {
 
         renderNpc(npc, world, spawnPos);
 
-        ActiveNpc activeNpc = new ActiveNpc(npc, targetPlayer, ActiveNpc.NpcType.STALKER, 600);
-        activeNpc.speed = 0.12;
+        ActiveNpc activeNpc = new ActiveNpc(npc, targetPlayer, ActiveNpc.NpcType.STALKER, 900);
+        activeNpc.speed = 0.35;
+        activeNpc.gracePeriod = 80;
         ACTIVE_NPCS.add(activeNpc);
 
-        world.playSound(null, targetPlayer.getX(), targetPlayer.getY(), targetPlayer.getZ(),
-                SoundEvents.ENTITY_PLAYER_BREATH, SoundCategory.HOSTILE, 1.0f, 0.3f);
+        // Silent spawn — no sound, no warning
     }
 
     public static void spawnStaticNpc(ServerPlayerEntity targetPlayer) {

@@ -110,6 +110,9 @@ public class Project3Mod implements ModInitializer {
     // Commands spawned lights
     public static final java.util.Map<java.util.UUID, java.util.List<net.minecraft.util.math.BlockPos>> COMMAND_SPAWNED_LIGHTS = new java.util.concurrent.ConcurrentHashMap<>();
 
+    // Gloom Void escalation tracking
+    public static final java.util.Map<java.util.UUID, Integer> VOID_ESCALATION_TICKS = new java.util.concurrent.ConcurrentHashMap<>();
+
     public static void initializePlayerVoidPortal(java.util.UUID uuid, net.minecraft.util.math.random.Random random) {
         PORTAL_IS_LIT.put(uuid, true);
         PORTAL_STATE_TICKS.put(uuid, 1200 + random.nextInt(800));
@@ -417,6 +420,7 @@ public class Project3Mod implements ModInitializer {
             }
             com.project3.dread.DreadManager.onDisconnect(player.getUuid());
             com.project3.dread.ShadowMerchant.onDisconnect(player.getUuid());
+            VOID_ESCALATION_TICKS.remove(player.getUuid());
         });
 
         // ── Server Started Event to restore World Border based on Season State ──
@@ -515,6 +519,7 @@ public class Project3Mod implements ModInitializer {
         // ── Module 2 + 3 + 6: Server tick ─────────────────────────────────
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             // Tick scheduled tasks safely and clean up finished ones
+            java.util.List<ScheduledTask> toRemove = new java.util.ArrayList<>();
             for (ScheduledTask task : SCHEDULED_TASKS) {
                 task.remaining--;
                 if (task.remaining <= 0) {
@@ -523,9 +528,10 @@ public class Project3Mod implements ModInitializer {
                     } catch (Exception e) {
                         LOGGER.error("Error executing scheduled task", e);
                     }
-                    SCHEDULED_TASKS.remove(task);
+                    toRemove.add(task);
                 }
             }
+            SCHEDULED_TASKS.removeAll(toRemove);
 
             // Tick custom virtual NPCs and record/track online player frames & history
             try {
@@ -689,8 +695,10 @@ public class Project3Mod implements ModInitializer {
 
                 net.minecraft.world.World playerWorld = player.getEntityWorld();
                 if (playerWorld instanceof ServerWorld serverWorld && serverWorld.getRegistryKey() == GLOOM_VOID_WORLD_KEY) {
+                    VOID_ESCALATION_TICKS.merge(player.getUuid(), 1, Integer::sum);
                     tickGloomVoidPlayer(player, serverWorld);
                 } else if (playerWorld instanceof ServerWorld serverWorld) {
+                    VOID_ESCALATION_TICKS.remove(player.getUuid());
                     BlockPos lightPos = PLAYER_LIGHT_POSITIONS.remove(player.getUuid());
                     if (lightPos != null) {
                         if (serverWorld.getBlockState(lightPos).isOf(Blocks.LIGHT)) {
@@ -820,11 +828,14 @@ public class Project3Mod implements ModInitializer {
             Act act = getAct(state);
 
             // 1. Boundary Check
+            BlockPos spawnPos = overworld.getSpawnPoint().getPos();
+            int spawnX = spawnPos.getX();
+            int spawnZ = spawnPos.getZ();
             for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
                 if (player.getEntityWorld() == overworld) {
                     double x = player.getX();
                     double z = player.getZ();
-                    if (Math.abs(x) >= WALL_THRESHOLD || Math.abs(z) >= WALL_THRESHOLD) {
+                    if (Math.abs(x - spawnX) >= WALL_THRESHOLD || Math.abs(z - spawnZ) >= WALL_THRESHOLD) {
                         applyWallPenalty(player, overworld);
                     }
                 }
@@ -1088,7 +1099,7 @@ public class Project3Mod implements ModInitializer {
                     Text.literal("§e⚠ ВНИМАНИЕ").formatted(Formatting.YELLOW)
             ));
             player.networkHandler.sendPacket(new SubtitleS2CPacket(
-                    Text.literal("§7Граница сектора ahead")
+                    Text.literal("§7Вы приближаетесь к границе сектора")
             ));
             overworld.playSound(null, player.getBlockPos(), SoundEvents.BLOCK_NOTE_BLOCK_BIT.value(), SoundCategory.MASTER, 1.0f, 0.5f);
             return;
@@ -1151,7 +1162,7 @@ public class Project3Mod implements ModInitializer {
     }
 
     // Maximum happiness duration: 1 hour (120000 ticks)
-    private static final long MAX_HAPPINESS_TICKS = 120000L;
+    private static final long MAX_HAPPINESS_TICKS = com.project3.state.Project3State.MAX_HAPPINESS_TICKS;
 
     public static void grantHappiness(ServerPlayerEntity player, Project3State state, long ticks) {
         long current = state.getHappinessTicksLeft(player.getUuid());
@@ -1292,8 +1303,6 @@ public class Project3Mod implements ModInitializer {
         ServerWorld world = (ServerWorld) player.getEntityWorld();
         net.minecraft.util.math.random.Random rand = player.getRandom();
         
-        // Only run every 100 ticks to avoid lag
-        if (world.getTime() % 100 != 0) return;
         
         // Leaf decay and grass death in a 16-block radius
         int radius = 16;
@@ -1355,7 +1364,7 @@ public class Project3Mod implements ModInitializer {
                             if (rand.nextFloat() < 0.3f) {
                                 BlockPos veinPos = pos.up().offset(dir);
                                 if (world.getBlockState(veinPos).isAir()) {
-                                    world.setBlockState(veinPos, Blocks.SCULK_VEIN.getDefaultState(), Block.NOTIFY_LISTENERS);
+                                    world.setBlockState(veinPos, Blocks.SCULK.getDefaultState(), Block.NOTIFY_LISTENERS);
                                 }
                             }
                         }
@@ -1367,6 +1376,14 @@ public class Project3Mod implements ModInitializer {
 
     private static void tickGloomVoidPlayer(ServerPlayerEntity player, ServerWorld playerWorld) {
         if (!player.isAlive()) return;
+
+        // Escalation level based on time spent in Gloom Void this session
+        int voidTicks = VOID_ESCALATION_TICKS.getOrDefault(player.getUuid(), 0);
+        int escalationLevel = 0;
+        if (voidTicks > 3600) escalationLevel = 4;  // 3+ minutes
+        else if (voidTicks > 2400) escalationLevel = 3;  // 2 minutes
+        else if (voidTicks > 1200) escalationLevel = 2;  // 1 minute
+        else if (voidTicks > 600) escalationLevel = 1;   // 30 seconds
 
         // Failsafe: if player falls below Y=55, teleport them back to the portal safety!
         if (player.getY() < 55.0) {
@@ -1426,8 +1443,10 @@ public class Project3Mod implements ModInitializer {
             PLAYER_LIGHT_POSITIONS.put(player.getUuid(), targetLightPos);
         }
 
-        // 2. Ambient Sounds / Glitches
-        int ambTicks = AMBIENT_COOLDOWNS.computeIfAbsent(player.getUuid(), uuid -> player.getRandom().nextInt(1200) + 1200);
+        // 2. Ambient Sounds / Glitches — faster at higher escalation
+        int ambBaseDelay = 1200 - escalationLevel * 200;
+        if (ambBaseDelay < 400) ambBaseDelay = 400;
+        int ambTicks = AMBIENT_COOLDOWNS.computeIfAbsent(player.getUuid(), uuid -> player.getRandom().nextInt(ambBaseDelay) + ambBaseDelay);
         if (ambTicks > 0) {
             AMBIENT_COOLDOWNS.put(player.getUuid(), ambTicks - 1);
         } else {
@@ -1532,8 +1551,8 @@ public class Project3Mod implements ModInitializer {
         if (playerWorld.getTime() % 80 == 0 && player.getRandom().nextFloat() < 0.3f) {
             net.minecraft.util.math.Vec3d look = player.getRotationVec(1.0f).normalize();
             // Place sound BEHIND player
-            double fx = player.getX() + look.x * 2.0;
-            double fz = player.getZ() + look.z * 2.0;
+            double fx = player.getX() - look.x * 2.0;
+            double fz = player.getZ() - look.z * 2.0;
             double fy = player.getY();
             playerWorld.playSound(null, fx, fy, fz, SoundEvents.BLOCK_STONE_STEP, SoundCategory.MASTER, 0.6f, 0.7f);
             schedule(8, () -> {
@@ -1566,21 +1585,31 @@ public class Project3Mod implements ModInitializer {
             player.networkHandler.sendPacket(screamPacket);
         }
 
-        // Heartbeat (subtle, low rhythm, increases tension)
-        if (playerWorld.getTime() % 30 == 0 && player.getRandom().nextFloat() < 0.08f) {
+        // Heartbeat (subtle, low rhythm, increases tension — faster at higher escalation)
+        int hbInterval = 30 - escalationLevel * 4;
+        if (hbInterval < 10) hbInterval = 10;
+        float hbChance = 0.08f + escalationLevel * 0.05f;
+        if (hbChance > 0.3f) hbChance = 0.3f;
+        float hbPitch = 0.6f + escalationLevel * 0.15f;
+        if (hbPitch > 1.2f) hbPitch = 1.2f;
+        if (playerWorld.getTime() % hbInterval == 0 && player.getRandom().nextFloat() < hbChance) {
+            float hbVolume = 0.15f + escalationLevel * 0.08f;
+            if (hbVolume > 0.5f) hbVolume = 0.5f;
             PlaySoundS2CPacket heartPacket = new PlaySoundS2CPacket(
                 net.minecraft.registry.Registries.SOUND_EVENT.getEntry(SoundEvents.ENTITY_WARDEN_HEARTBEAT),
                 SoundCategory.MASTER,
                 player.getX(), player.getY(), player.getZ(),
-                0.15f,  // barely audible
-                0.6f,
+                hbVolume,
+                hbPitch,
                 player.getRandom().nextLong()
             );
             player.networkHandler.sendPacket(heartPacket);
         }
 
-        // Random door creak (creepy wooden sounds)
-        if (playerWorld.getTime() % 250 == 0 && player.getRandom().nextFloat() < 0.12f) {
+        // Random door creak (creepy wooden sounds) — more frequent at escalation
+        int creakInterval = 250 - escalationLevel * 30;
+        if (creakInterval < 100) creakInterval = 100;
+        if (playerWorld.getTime() % creakInterval == 0 && player.getRandom().nextFloat() < 0.12f + escalationLevel * 0.04f) {
             net.minecraft.util.math.Vec3d creakOffset = new net.minecraft.util.math.Vec3d(
                 (player.getRandom().nextDouble() - 0.5) * 16.0, 0,
                 (player.getRandom().nextDouble() - 0.5) * 16.0);
@@ -1589,8 +1618,12 @@ public class Project3Mod implements ModInitializer {
                 SoundEvents.BLOCK_FENCE_GATE_OPEN, SoundCategory.MASTER, 0.4f, 0.3f);
         }
 
-        // Whisper System - random horror messages in Gloom Void
-        if (playerWorld.getTime() % 200 == 0 && player.getRandom().nextFloat() < 0.15f) {
+        // Whisper System - random horror messages in Gloom Void (more frequent at higher escalation)
+        int whisperInterval = 200 - escalationLevel * 30;
+        if (whisperInterval < 80) whisperInterval = 80;
+        float whisperChance = 0.15f + escalationLevel * 0.08f;
+        if (whisperChance > 0.5f) whisperChance = 0.5f;
+        if (playerWorld.getTime() % whisperInterval == 0 && player.getRandom().nextFloat() < whisperChance) {
             String[] whispers = {
                 "§8[???]: §7Помогите...",
                 "§8[???]: §7Оно здесь...",
@@ -1616,8 +1649,10 @@ public class Project3Mod implements ModInitializer {
                 SoundEvents.ENTITY_PLAYER_BREATH, SoundCategory.MASTER, 0.3f, 0.5f);
         }
 
-        // 2e. Shadow Merchant spawn chance (5% per minute in Gloom Void)
-        if (playerWorld.getTime() % 1200 == 0 && player.getRandom().nextFloat() < 0.05f) {
+        // 2e. Shadow Merchant spawn chance (scales with escalation)
+        float merchantChance = 0.05f + escalationLevel * 0.03f;
+        if (merchantChance > 0.2f) merchantChance = 0.2f;
+        if (playerWorld.getTime() % 1200 == 0 && player.getRandom().nextFloat() < merchantChance) {
             com.project3.dread.ShadowMerchant.trySpawn(player);
         }
 
@@ -1652,14 +1687,26 @@ public class Project3Mod implements ModInitializer {
             SECTOR_COOLDOWNS.put(player.getUuid(), player.getRandom().nextInt(600) + 600);
         }
 
-        // 4. Automatic Screamer Sprint loop check in Gloom Void (only spawns Screamer Sprint variant)
-        int phTicks = PHANTOM_COOLDOWNS.computeIfAbsent(player.getUuid(), uuid -> player.getRandom().nextInt(1200) + 1200);
+        // 4. Automatic Screamer Sprint loop check in Gloom Void (escalation affects frequency and count)
+        int phCooldownBase = 1200 - escalationLevel * 150;
+        if (phCooldownBase < 300) phCooldownBase = 300;
+        int phTicks = PHANTOM_COOLDOWNS.computeIfAbsent(player.getUuid(), uuid -> player.getRandom().nextInt(phCooldownBase) + phCooldownBase);
         if (phTicks > 0) {
             PHANTOM_COOLDOWNS.put(player.getUuid(), phTicks - 1);
         } else {
             com.project3.entity.PhantomReplicator.spawnScreamerSprint(player);
+            // At higher escalation, spawn a SECOND screamer from opposite direction
+            if (escalationLevel >= 2 && player.getRandom().nextBoolean()) {
+                com.project3.entity.PhantomReplicator.spawnScreamerSprint(player);
+            }
             com.project3.dread.DreadManager.onPhantomSpawn(player);
-            PHANTOM_COOLDOWNS.put(player.getUuid(), player.getRandom().nextInt(1200) + 1200); // 60-120 seconds
+            PHANTOM_COOLDOWNS.put(player.getUuid(), player.getRandom().nextInt(phCooldownBase) + phCooldownBase);
+        }
+
+        // 4b. Escalation-based visual glitches (shader flash, fog spikes)
+        if (escalationLevel >= 2 && playerWorld.getTime() % (300 - escalationLevel * 50) == 0 && player.getRandom().nextFloat() < 0.1f * escalationLevel) {
+            net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(player,
+                    new com.project3.network.ShaderFlashPayload());
         }
 
         // 5. Portal flickering logic
@@ -1670,7 +1717,7 @@ public class Project3Mod implements ModInitializer {
             boolean newLit = !isCurrentlyLit;
             PORTAL_IS_LIT.put(player.getUuid(), newLit);
 
-            int hash = player.getUuid().hashCode();
+            int hash = Math.abs(player.getUuid().hashCode());
             double vx = (hash % 1000) * 1000.0;
             double vy = 64.0;
             double vz = ((hash / 1000) % 1000) * 1000.0;

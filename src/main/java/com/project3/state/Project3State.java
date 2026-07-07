@@ -22,6 +22,11 @@ import java.util.*;
  */
 public class Project3State extends PersistentState {
 
+    /** Maximum happiness duration: 1 hour (120000 ticks) */
+    public static final long MAX_HAPPINESS_TICKS = 120000L;
+
+    private static boolean producerCapWarningLogged = false;
+
     private static final String STATE_KEY = "project3_state";
     private static final PersistentStateType<Project3State> TYPE = new PersistentStateType<>(
             STATE_KEY,
@@ -103,6 +108,9 @@ public class Project3State extends PersistentState {
         if (generatedProducerChunks.size() < 10_000) {
             generatedProducerChunks.add(key);
             markDirty();
+        } else if (!producerCapWarningLogged) {
+            producerCapWarningLogged = true;
+            com.project3.Project3Mod.LOGGER.warn("generatedProducerChunks reached cap of 10_000 — new chunks will NOT be tracked, possible duplicate Producer blocks");
         }
     }
 
@@ -156,7 +164,7 @@ public class Project3State extends PersistentState {
 
     public long getHappinessTicksLeft(UUID uuid) { return playerHappinessTicksLeft.getOrDefault(uuid, 0L); }
     public void setHappinessTicksLeft(UUID uuid, long val) { playerHappinessTicksLeft.put(uuid, val); markDirty(); }
-    public void addHappinessTicks(UUID uuid, long ticks) { setHappinessTicksLeft(uuid, getHappinessTicksLeft(uuid) + ticks); }
+    public void addHappinessTicks(UUID uuid, long ticks) { setHappinessTicksLeft(uuid, Math.min(getHappinessTicksLeft(uuid) + ticks, MAX_HAPPINESS_TICKS)); }
 
     public boolean isGloomPermanent(UUID uuid) { return playerGloomPermanent.getOrDefault(uuid, false); }
     public void setGloomPermanent(UUID uuid, boolean val) { playerGloomPermanent.put(uuid, val); markDirty(); }
@@ -238,15 +246,18 @@ public class Project3State extends PersistentState {
 
         // Serialize achievement progress
         NbtCompound achievementsNbt = new NbtCompound();
-        playerAchievementIndex.forEach((uuid, index) -> {
+        Set<UUID> allAchievementUuids = new HashSet<>();
+        allAchievementUuids.addAll(playerAchievementIndex.keySet());
+        allAchievementUuids.addAll(completedAchievements.keySet());
+        for (UUID uuid : allAchievementUuids) {
             NbtCompound playerData = new NbtCompound();
-            playerData.putInt("index", index);
+            playerData.putInt("index", playerAchievementIndex.getOrDefault(uuid, 0));
             NbtList completedList = new NbtList();
             Set<String> completed = completedAchievements.getOrDefault(uuid, Collections.emptySet());
             completed.forEach(id -> completedList.add(NbtString.of(id)));
             playerData.put("completed", completedList);
             achievementsNbt.put(uuid.toString(), playerData);
-        });
+        }
         nbt.put("achievement_progress", achievementsNbt);
 
         // Serialize achievement baselines

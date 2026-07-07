@@ -24,6 +24,7 @@ public class Project3Client implements ClientModInitializer {
     public static int glitchTickIndex = -1;
     public static final int[] STROBE_PATTERN = {1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0};
     public static final java.util.Set<Integer> GLITCHED_STATUE_IDS = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+    public static int vignetteFlickerTick = 0;
     private static boolean isInGloomVoid = false;
 
     // Keybind for toggling achievement panel
@@ -349,6 +350,10 @@ public class Project3Client implements ClientModInitializer {
                 if (client.world.random.nextFloat() < 0.004f) { // ~once every 250 ticks (12.5 seconds)
                     triggerShaderGlitch(client);
                 }
+                // Subtle screen flicker
+                if (vignetteFlickerTick <= 0 && client.world.random.nextFloat() < 0.005f) {
+                    vignetteFlickerTick = 4 + client.world.random.nextInt(4);
+                }
             }
         });
 
@@ -369,7 +374,7 @@ public class Project3Client implements ClientModInitializer {
 
     /**
      * Renders a dark vignette overlay around screen edges for Gloom Void atmosphere.
-     * Creates a gradient from transparent center to dark edges.
+     * Creates a gradient from transparent center to dark red/black edges.
      */
     private static void p3$renderVignette(net.minecraft.client.gui.DrawContext ctx) {
         var client = net.minecraft.client.MinecraftClient.getInstance();
@@ -380,30 +385,46 @@ public class Project3Client implements ClientModInitializer {
         int centerX = width / 2;
         int centerY = height / 2;
 
-        // Draw radial vignette using concentric filled rectangles with increasing alpha
-        for (int ring = 0; ring < 8; ring++) {
-            float progress = ring / 7.0f;
-            int expandX = (int) (width * 0.12f * progress);
-            int expandY = (int) (height * 0.12f * progress);
-            int alpha = (int) (progress * progress * 70);
+        // Darker, more oppressive vignette with red tint
+        int vignetteAlphaBase = 80; // was 70
+        int vignetteRings = 10;     // was 8 — smoother gradient
+
+        for (int ring = 0; ring < vignetteRings; ring++) {
+            float progress = ring / (float)(vignetteRings - 1);
+            int expandX = (int) (width * 0.18f * progress);
+            int expandY = (int) (height * 0.18f * progress);
+            int alpha = (int) (progress * progress * vignetteAlphaBase);
 
             int left = Math.max(centerX - width / 2 - expandX, 0);
             int top = Math.max(centerY - height / 2 - expandY, 0);
             int right = Math.min(centerX + width / 2 + expandX, width);
             int bottom = Math.min(centerY + height / 2 + expandY, height);
 
-            ctx.fill(left, top, right, bottom, (alpha << 24));
+            // Slight red tint to vignette color
+            ctx.fill(left, top, right, bottom, (alpha << 24) | 0x080000);
         }
 
-        // Top and bottom edge bars for extra oppression
-        int edgeAlpha = 30;
-        ctx.fill(0, 0, width, 16, (edgeAlpha << 24));
-        ctx.fill(0, height - 16, width, height, (edgeAlpha << 24));
+        // Top and bottom edge bars — darker, red-tinted
+        int edgeAlpha = 50;
+        ctx.fill(0, 0, width, 20, (edgeAlpha << 24) | 0x040000);
+        ctx.fill(0, height - 20, width, height, (edgeAlpha << 24) | 0x040000);
+
+        // Left and right edge bars for full-frame oppression
+        ctx.fill(0, 0, 8, height, (edgeAlpha << 24) | 0x040000);
+        ctx.fill(width - 8, 0, width, height, (edgeAlpha << 24) | 0x040000);
 
         // Dread tint overlay
         int dreadTint = DreadHandler.getScreenTint();
         if (dreadTint != 0) {
             ctx.fill(0, 0, width, height, dreadTint);
+        }
+
+        // Random full-screen alpha flicker for Gloom Void (subtle screen tearing feel)
+        if (isInGloomVoid && vignetteFlickerTick > 0) {
+            vignetteFlickerTick--;
+            if (vignetteFlickerTick % 2 == 0) {
+                ctx.fill(0, 0, width, height, 0x08000000);
+            }
         }
     }
 }
