@@ -353,25 +353,19 @@ public class ActiveAchievementHud {
     }
 
     private static void renderDecayTransition(DrawContext context, int bx, int by, int texW, int texH, float progress) {
-        // Crossfade old → new with dark red flash at midpoint
         int oldIdx = prevStateIndex - 1;
         int newIdx = stateIndex - 1;
 
         if (oldIdx >= 0 && oldIdx < 6) {
-            float oldAlpha = 1.0f - Math.min(progress * 1.5f, 1.0f);
-            context.setShaderColor(1, 1, 1, oldAlpha);
-            context.drawTexture(RenderPipelines.GUI_TEXTURED, BAR_TEXTURES[oldIdx], bx, by, 0, 0, texW, texH, texW, texH);
-            context.setShaderColor(1, 1, 1, 1);
+            int oldAlpha = (int)((1.0f - Math.min(progress * 1.5f, 1.0f)) * 255) << 24;
+            context.drawTexture(RenderPipelines.GUI_TEXTURED, BAR_TEXTURES[oldIdx], bx, by, 0, 0, texW, texH, texW, texH, oldAlpha | 0xFFFFFF);
         }
 
         if (newIdx >= 0 && newIdx < 6) {
-            float newAlpha = Math.max(progress * 1.5f - 0.5f, 0.0f);
-            context.setShaderColor(1, 1, 1, newAlpha);
-            context.drawTexture(RenderPipelines.GUI_TEXTURED, BAR_TEXTURES[newIdx], bx, by, 0, 0, texW, texH, texW, texH);
-            context.setShaderColor(1, 1, 1, 1);
+            int newAlpha = (int)(Math.max(progress * 1.5f - 0.5f, 0.0f) * 255) << 24;
+            context.drawTexture(RenderPipelines.GUI_TEXTURED, BAR_TEXTURES[newIdx], bx, by, 0, 0, texW, texH, texW, texH, newAlpha | 0xFFFFFF);
         }
 
-        // Dark red flash at midpoint
         float midFlash = 1.0f - Math.abs(progress - 0.5f) * 4.0f;
         if (midFlash > 0) {
             int flashAlpha = (int) (midFlash * 60);
@@ -386,19 +380,15 @@ public class ActiveAchievementHud {
         int newIdx = stateIndex - 1;
 
         if (oldIdx >= 0 && oldIdx < 6) {
-            float oldAlpha = 1.0f - progress;
-            context.setShaderColor(1, 1, 1, oldAlpha);
-            context.drawTexture(RenderPipelines.GUI_TEXTURED, BAR_TEXTURES[oldIdx], bx, by, 0, 0, texW, texH, texW, texH);
-            context.setShaderColor(1, 1, 1, 1);
+            int oldAlpha = (int)((1.0f - progress) * 255) << 24;
+            context.drawTexture(RenderPipelines.GUI_TEXTURED, BAR_TEXTURES[oldIdx], bx, by, 0, 0, texW, texH, texW, texH, oldAlpha | 0xFFFFFF);
         }
 
         if (newIdx >= 0 && newIdx < 6) {
-            context.setShaderColor(1, 1, 1, progress);
-            context.drawTexture(RenderPipelines.GUI_TEXTURED, BAR_TEXTURES[newIdx], bx, by, 0, 0, texW, texH, texW, texH);
-            context.setShaderColor(1, 1, 1, 1);
+            int newAlpha = (int)(progress * 255) << 24;
+            context.drawTexture(RenderPipelines.GUI_TEXTURED, BAR_TEXTURES[newIdx], bx, by, 0, 0, texW, texH, texW, texH, newAlpha | 0xFFFFFF);
         }
 
-        // Gold shimmer at midpoint
         float goldFlash = 1.0f - Math.abs(progress - 0.5f) * 4.0f;
         if (goldFlash > 0) {
             int flashAlpha = (int) (goldFlash * 50);
