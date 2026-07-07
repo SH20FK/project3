@@ -28,12 +28,12 @@ loom {
 		}
 	}
 
-}
+	mixin {
+		useLegacyMixinAp = true
+		add sourceSets.main, "project3-refmap.json"
+		add sourceSets.client, "project3-refmap.json"
+	}
 
-mixin {
-	useLegacyMixinAp = true
-	add sourceSets.main, "project3-refmap.json"
-	add sourceSets.client, "project3-refmap.json"
 }
 
 
