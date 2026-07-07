@@ -1,60 +1,42 @@
-1. Добавь генерацию refmap в build.gradle
+1. Найди в своём MixinFogRenderer место, где используется Proxy.newProxyInstance (или похожее).
 
-Вставь секцию mixin (если её нет) прямо в корень файла:
+2. Узнай, что такое class_11400 в 1.21.11.
 
-```gradle
-mixin {
-    add sourceSets.main, "project3-refmap.json"
-}
-```
+· Открой net.minecraft.class_11400 (по маппингам это может быть FogModifier или FogType).
+· Если это класс, то не используй прокси.
+· Вместо этого создай экземпляр этого класса через new или через фабрику.
 
-Убедись, что у тебя есть плагин fabric-loom (версия >= 1.6), он поддерживает это.
+3. Альтернативный подход — не создавать прокси вообще.
 
----
-
-2. Укажи refmap в p3.client.mixins.json
-
-В файле src/main/resources/p3.client.mixins.json добавь поле:
-
-```json
-{
-  "required": true,
-  "minVersion": "0.8",
-  "package": "твой.пакет.mixin",
-  "compatibilityLevel": "JAVA_21",
-  "refmap": "project3-refmap.json",
-  "client": [
-    "MixinFogRenderer"
-  ]
-}
-```
-
-То же самое для p3.mixins.json, если он есть.
+Если ты хотел переопределить какой-то метод FogModifier, используй @Inject с @At("RETURN") для модификации готового объекта, а не подменяй создание прокси.
 
 ---
 
-3. Проверь целевой метод в FogRenderer для 1.21.11
-
-Ты используешь @WrapOperation (или @ModifyVariable – по логу видно Callback method wrapApplyFog).
-Открой FogRenderer в 1.21.11 и посмотри, существует ли метод, который ты оборачиваешь. Возможно, он называется applyFog с другой сигнатурой, или его вообще нет.
-Если метод изменился, обнови аннотацию @WrapOperation соответственно.
-
-Пример правильного @WrapOperation (если метод applyFog):
+📝 Пример неправильного кода (скорее всего у тебя):
 
 ```java
-@WrapOperation(
-    method = "setupFog", // или метод, который ты перехватываешь
-    at = @At(value = "INVOKE", target = "Lnet/minecraft/class_758;applyFog(Ljava/nio/ByteBuffer;ILorg/joml/Vector4f;FFFFFF)V")
-)
-private void p3$wrapApplyFog(Operation<Void> original, ...) {
-    // твой код
+@WrapOperation(...)
+private FogModifier createFogModifier(Operation<FogModifier> original) {
+    return (FogModifier) Proxy.newProxyInstance(
+        classLoader,
+        new Class[]{FogModifier.class}, // ← тут должен быть интерфейс, но FogModifier теперь класс
+        handler
+    );
 }
 ```
 
-Но точную сигнатуру нужно смотреть в декомпилированном коде 1.21.11.
+Исправление: если FogModifier теперь класс, создавай его напрямую:
+
+```java
+return new FogModifier(...); // или используй билдер/фабрику
+```
 
 ---
 
-4. Если метод отсутствует или изменился
+🔧 Что конкретно сделать сейчас
 
-Возможно, в 1.21.11 логика тумана переписана. Тогда придётся найти другой способ (например, перехватывать setupFog или использовать @Inject с @At("HEAD") на нужном методе).
+1. Узнай точное имя класса class_11400 через маппинги (Yarn: FogModifier? Mojmap: FogModifier?).
+2. Проверь, является ли он интерфейсом. Если нет — перепиши создание объекта без прокси.
+3. Если нужно переопределить логику, используй @Inject на метод, где этот объект используется, и модифицируй его поля/поведение через отражение или через вызовы методов.
+
+---
