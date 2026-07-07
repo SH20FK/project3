@@ -1,5 +1,6 @@
 package com.project3.mixin;
 
+import net.minecraft.block.enums.CameraSubmersionType;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.client.render.fog.FogData;
@@ -22,7 +23,7 @@ public class GloomFogModifier extends FogModifier {
     }
 
     @Override
-    public boolean shouldApply(net.minecraft.block.enums.CameraSubmersionType submersionType, Entity entity) {
+    public boolean shouldApply(CameraSubmersionType submersionType, Entity entity) {
         return true;
     }
 
