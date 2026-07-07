@@ -1,19 +1,62 @@
-. Обновить зависимости в build.gradle
-   · Убедись, что используется fabric-loom версии 1.7+ (рекомендуется последняя).
-   · Установи актуальные маппинги для 1.21.11. Вместо intermediary используй yarn или mojmap с версией, соответствующей клиенту 1.21.11.
-          Пример (для Yarn):
-     ```groovy
-     mappings "net.fabricmc:yarn:1.21.11+build.1:v2"
-     ```
-   · Проверь, что в mixin блоке есть строка:
-     ```groovy
-     mixin {
-         add sourceSets.main, "project3-refmap.json"
-     }
-     ```
-2. Изучить класс FogRenderer в новой версии
-   · Открой декомпилированный код net.minecraft.class_758 (или используй поиск по маппингам, например, в IntelliJ с плагином Fabric).
-   · Найди, где теперь вычисляется туман (fog). В 1.21.11 метод environmentalStart скорее всего переименован, удалён или перенесён в другой класс (например, в BackgroundRenderer или FogRenderer с другим названием).
+
+🔍 1. Проверь существование метода в 1.21.11
+
+Открой класс FogRenderer (через IDE с маппингами или декомпилируй). Убедись, что метод modifyEnvironmentalStart(float) действительно есть.
+В новых версиях его могли переименовать или удалить. Если его нет – выбери другой метод для модификации.
+
+---
+
+🧩 2. Исправь @At в миксине
+
+Ты используешь @ModifyVariable, но ошибка Scanned 0 target(s) означает, что @At не находит точку вставки.
+Если хочешь изменить возвращаемое значение – используй @ModifyReturnValue с @At("RETURN").
+Пример:
+
+```java
+@ModifyReturnValue(method = "modifyEnvironmentalStart", at = @At("RETURN"))
+private float p3$modifyEnvironmentalStart(float original) { ... }
+```
+
+Если метод принимает float и возвращает float – это именно то, что нужно.
+Убедись, что сигнатура в @ModifyVariable совпадает с оригиналом.
+
+---
+
+📦 3. Настрой генерацию refmap
+
+В build.gradle добавь:
+
+```gradle
+mixin {
+    add sourceSets.main, "project3-refmap.json"
+}
+```
+
+И в p3.client.mixins.json укажи:
+
+```json
+"refmap": "project3-refmap.json"
+```
+
+Обязательно пересобери мод – без refmap миксин не сможет сопоставить обфусцированные имена.
+
+---
+
+🔧 4. Проверь используемые маппинги
+
+В build.gradle укажи актуальные маппинги для 1.21.11:
+
+```gradle
+mappings channel: 'yarn', version: '1.21.11+build.1'
+```
+
+или Mojang:
+
+```gradle
+mappings channel: 'official', version: '1.21.11'
+```
+
+Это даст правильные имена методов.
    · Определи новое имя метода или поле, которое хранит значение тумана. Возможно, теперь это поле fogStart с модификатором или метод getFogStart().
 3. Переписать Mixin-класс(ы)
    · В классе, который содержит @ModifyVariable (или @Inject), измени цель на правильный метод/поле.
