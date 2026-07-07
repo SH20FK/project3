@@ -25,3 +25,4 @@ nul
 Dump.java
 *.jpg
 *.png
+!src/main/resources/assets/p3/textures/hud/*.png

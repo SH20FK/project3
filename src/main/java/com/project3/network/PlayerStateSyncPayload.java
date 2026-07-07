@@ -7,13 +7,15 @@ import net.minecraft.util.Identifier;
 
 /**
  * Server → Client payload syncing player-specific state (Happiness, Gloom, Unnamed Effect).
+ * stateIndex: 1-6 mapping to the 6 HUD bar textures.
  */
 public record PlayerStateSyncPayload(
     long happinessTicksLeft,
     boolean gloomPermanent,
     long gloomTicksLeft,
     boolean unnamedEffectActive,
-    int progressLevel
+    int progressLevel,
+    int stateIndex
 ) implements CustomPayload {
 
     public static final Id<PlayerStateSyncPayload> ID =
@@ -27,12 +29,14 @@ public record PlayerStateSyncPayload(
                         buf.writeLong(value.gloomTicksLeft());
                         buf.writeBoolean(value.unnamedEffectActive());
                         buf.writeInt(value.progressLevel());
+                        buf.writeInt(value.stateIndex());
                     },
                     buf -> new PlayerStateSyncPayload(
                             buf.readLong(),
                             buf.readBoolean(),
                             buf.readLong(),
                             buf.readBoolean(),
+                            buf.readInt(),
                             buf.readInt()
                     )
             );

@@ -2,6 +2,7 @@ package com.project3;
 
 import com.project3.block.ProducerBlock;
 import com.project3.block.entity.ProducerBlockEntity;
+import java.util.UUID;
 import com.project3.command.Project3Command;
 import com.project3.network.CameraRotatePayload;
 import com.project3.network.OpenInventoryPayload;
@@ -596,6 +597,10 @@ public class Project3Mod implements ModInitializer {
                     player.addStatusEffect(new StatusEffectInstance(StatusEffects.SPEED, 40, 0, true, false, true));
                     state.setGloomPermanent(player.getUuid(), false);
                     state.setGloomTicksLeft(player.getUuid(), 0L);
+                    // Reset gloom depth when happiness is restored
+                    if (state.getGloomDepthTicks(player.getUuid()) > 0) {
+                        state.setGloomDepthTicks(player.getUuid(), 0L);
+                    }
 
                     // Fix #15: only run XP magnet every 2 ticks to reduce entity query load
                     if (server.getTicks() % 2 == 0) {
@@ -668,6 +673,7 @@ public class Project3Mod implements ModInitializer {
                     // No happiness! Force permanent gloom
                     state.setGloomPermanent(player.getUuid(), true);
                     state.setGloomTicksLeft(player.getUuid(), 0L);
+                    state.addGloomDepthTicks(player.getUuid(), 1L);
                     player.addStatusEffect(new StatusEffectInstance(StatusEffects.UNLUCK, 40, 0, true, false, true));
                 }
 
@@ -1148,13 +1154,33 @@ public class Project3Mod implements ModInitializer {
         ));
     }
 
+    private static final long GLOOM_DEPTH_THRESHOLD_3 = 24000L;  // 20 min → state 4
+    private static final long GLOOM_DEPTH_THRESHOLD_4 = 72000L;  // 60 min → state 5
+
+    public static int computeStateIndex(ServerPlayerEntity player, Project3State state) {
+        if (!state.isSeasonStarted()) return 0;
+        UUID uuid = player.getUuid();
+        if (state.isUnnamedEffectActive(uuid)) return 6;
+        long happiness = state.getHappinessTicksLeft(uuid);
+        if (happiness > state.MAX_HAPPINESS_TICKS / 2) return 1;
+        if (happiness > 0) return 2;
+        long gloomDepth = state.getGloomDepthTicks(uuid);
+        boolean inVoid = player.getEntityWorld() instanceof ServerWorld sw
+            && sw.getRegistryKey() == GLOOM_VOID_WORLD_KEY;
+        if (gloomDepth < GLOOM_DEPTH_THRESHOLD_3) return 3;
+        if (inVoid && gloomDepth >= GLOOM_DEPTH_THRESHOLD_4) return 5;
+        return 4;
+    }
+
     public static void syncPlayerState(ServerPlayerEntity player, Project3State state) {
+        int stateIndex = computeStateIndex(player, state);
         ServerPlayNetworking.send(player, new com.project3.network.PlayerStateSyncPayload(
                 state.getHappinessTicksLeft(player.getUuid()),
                 state.isGloomPermanent(player.getUuid()),
                 state.getGloomTicksLeft(player.getUuid()),
                 state.isUnnamedEffectActive(player.getUuid()),
-                state.getProgressLevel()
+                state.getProgressLevel(),
+                stateIndex
         ));
         // Sync paranoia level based on progressLevel (0 = no paranoia, 5 = max paranoia)
         int paranoiaLevel = state.getProgressLevel();
@@ -1170,6 +1196,7 @@ public class Project3Mod implements ModInitializer {
         state.setHappinessTicksLeft(player.getUuid(), newTotal);
         state.setGloomPermanent(player.getUuid(), false);
         state.setGloomTicksLeft(player.getUuid(), 0L);
+        state.setGloomDepthTicks(player.getUuid(), 0L);
         player.removeStatusEffect(StatusEffects.UNLUCK);
         syncPlayerState(player, state);
     }

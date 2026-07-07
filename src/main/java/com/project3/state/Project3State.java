@@ -64,6 +64,8 @@ public class Project3State extends PersistentState {
     private final Map<UUID, Boolean> playerGloomPermanent = new HashMap<>();
     private final Map<UUID, Long> playerGloomTicksLeft = new HashMap<>();
     private final Map<UUID, Boolean> playerUnnamedEffectActive = new HashMap<>();
+    /** Cumulative ticks player has spent in gloom (happiness=0). Used for HUD bar states 3-5. */
+    private final Map<UUID, Long> playerGloomDepthTicks = new HashMap<>();
     private final Map<UUID, Set<String>> playerTradedProfessions = new HashMap<>();
     private final Map<UUID, String> playerLastNetherPortalPos = new HashMap<>();
     private boolean netherForceUnlocked = false;
@@ -176,6 +178,10 @@ public class Project3State extends PersistentState {
     public boolean isUnnamedEffectActive(UUID uuid) { return playerUnnamedEffectActive.getOrDefault(uuid, false); }
     public void setUnnamedEffectActive(UUID uuid, boolean val) { playerUnnamedEffectActive.put(uuid, val); markDirty(); }
 
+    public long getGloomDepthTicks(UUID uuid) { return playerGloomDepthTicks.getOrDefault(uuid, 0L); }
+    public void setGloomDepthTicks(UUID uuid, long val) { playerGloomDepthTicks.put(uuid, val); markDirty(); }
+    public void addGloomDepthTicks(UUID uuid, long ticks) { setGloomDepthTicks(uuid, getGloomDepthTicks(uuid) + ticks); }
+
     public Set<String> getTradedProfessions(UUID uuid) {
         return playerTradedProfessions.computeIfAbsent(uuid, k -> new HashSet<>());
     }
@@ -198,6 +204,7 @@ public class Project3State extends PersistentState {
         playerGloomPermanent.clear();
         playerGloomTicksLeft.clear();
         playerUnnamedEffectActive.clear();
+        playerGloomDepthTicks.clear();
         playerTradedProfessions.clear();
         playerLastNetherPortalPos.clear();
         netherForceUnlocked = false;
@@ -288,6 +295,10 @@ public class Project3State extends PersistentState {
         NbtCompound unnamedNbt = new NbtCompound();
         playerUnnamedEffectActive.forEach((uuid, val) -> unnamedNbt.putBoolean(uuid.toString(), val));
         nbt.put("unnamed_effect_active", unnamedNbt);
+
+        NbtCompound gloomDepthNbt = new NbtCompound();
+        playerGloomDepthTicks.forEach((uuid, val) -> gloomDepthNbt.putLong(uuid.toString(), val));
+        nbt.put("gloom_depth_ticks", gloomDepthNbt);
 
         NbtCompound tradedNbt = new NbtCompound();
         playerTradedProfessions.forEach((uuid, professions) -> {
@@ -390,6 +401,13 @@ public class Project3State extends PersistentState {
         unnamedNbt.getKeys().forEach(key -> {
             try {
                 state.playerUnnamedEffectActive.put(UUID.fromString(key), unnamedNbt.getBoolean(key).orElse(false));
+            } catch (IllegalArgumentException ignored) {}
+        });
+
+        NbtCompound gloomDepthNbt = nbt.getCompound("gloom_depth_ticks").orElseGet(NbtCompound::new);
+        gloomDepthNbt.getKeys().forEach(key -> {
+            try {
+                state.playerGloomDepthTicks.put(UUID.fromString(key), gloomDepthNbt.getLong(key).orElse(0L));
             } catch (IllegalArgumentException ignored) {}
         });
 
