@@ -28,9 +28,7 @@ loom {
 		}
 	}
 
-	mixin {
-		add sourceSets.main, "project3-refmap.json"
-	}
+	useLegacyMixinAp = true
 
 }
 
