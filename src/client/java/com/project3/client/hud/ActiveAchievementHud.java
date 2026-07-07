@@ -5,6 +5,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.render.RenderPipelines;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
@@ -337,7 +338,7 @@ public class ActiveAchievementHud {
         } else {
             // Normal static bar
             if (displayStateIndex >= 1 && displayStateIndex <= 6) {
-                context.drawTexture(BAR_TEXTURES[displayStateIndex - 1], bx, by, 0, 0, texW, texH, texW, texH);
+                context.drawTexture(RenderPipelines.GUI_TEXTURED, BAR_TEXTURES[displayStateIndex - 1], bx, by, 0, 0, texW, texH, texW, texH);
             }
         }
     }
@@ -359,14 +360,14 @@ public class ActiveAchievementHud {
         if (oldIdx >= 0 && oldIdx < 6) {
             float oldAlpha = 1.0f - Math.min(progress * 1.5f, 1.0f);
             context.setShaderColor(1, 1, 1, oldAlpha);
-            context.drawTexture(BAR_TEXTURES[oldIdx], bx, by, 0, 0, texW, texH, texW, texH);
+            context.drawTexture(RenderPipelines.GUI_TEXTURED, BAR_TEXTURES[oldIdx], bx, by, 0, 0, texW, texH, texW, texH);
             context.setShaderColor(1, 1, 1, 1);
         }
 
         if (newIdx >= 0 && newIdx < 6) {
             float newAlpha = Math.max(progress * 1.5f - 0.5f, 0.0f);
             context.setShaderColor(1, 1, 1, newAlpha);
-            context.drawTexture(BAR_TEXTURES[newIdx], bx, by, 0, 0, texW, texH, texW, texH);
+            context.drawTexture(RenderPipelines.GUI_TEXTURED, BAR_TEXTURES[newIdx], bx, by, 0, 0, texW, texH, texW, texH);
             context.setShaderColor(1, 1, 1, 1);
         }
 
@@ -387,13 +388,13 @@ public class ActiveAchievementHud {
         if (oldIdx >= 0 && oldIdx < 6) {
             float oldAlpha = 1.0f - progress;
             context.setShaderColor(1, 1, 1, oldAlpha);
-            context.drawTexture(BAR_TEXTURES[oldIdx], bx, by, 0, 0, texW, texH, texW, texH);
+            context.drawTexture(RenderPipelines.GUI_TEXTURED, BAR_TEXTURES[oldIdx], bx, by, 0, 0, texW, texH, texW, texH);
             context.setShaderColor(1, 1, 1, 1);
         }
 
         if (newIdx >= 0 && newIdx < 6) {
             context.setShaderColor(1, 1, 1, progress);
-            context.drawTexture(BAR_TEXTURES[newIdx], bx, by, 0, 0, texW, texH, texW, texH);
+            context.drawTexture(RenderPipelines.GUI_TEXTURED, BAR_TEXTURES[newIdx], bx, by, 0, 0, texW, texH, texW, texH);
             context.setShaderColor(1, 1, 1, 1);
         }
 
@@ -415,7 +416,7 @@ public class ActiveAchievementHud {
             float flashIntensity = (remaining - 5) / 3.0f;
             int flashAlpha = (int) (flashIntensity * 100);
             if (prevStateIndex >= 1 && prevStateIndex <= 6) {
-                context.drawTexture(BAR_TEXTURES[prevStateIndex - 1], bx, by, 0, 0, texW, texH, texW, texH);
+                context.drawTexture(RenderPipelines.GUI_TEXTURED, BAR_TEXTURES[prevStateIndex - 1], bx, by, 0, 0, texW, texH, texW, texH);
             }
             if (flashAlpha > 0) {
                 context.fill(bx, by, bx + texW, by + texH, (flashAlpha << 24) | 0xFF00FF);
@@ -424,13 +425,13 @@ public class ActiveAchievementHud {
             // Tick 3: instant switch to new texture (stateIndex, which is 6)
             // Draw texture6 immediately
             if (stateIndex >= 1 && stateIndex <= 6) {
-                context.drawTexture(BAR_TEXTURES[stateIndex - 1], bx, by, 0, 0, texW, texH, texW, texH);
+                context.drawTexture(RenderPipelines.GUI_TEXTURED, BAR_TEXTURES[stateIndex - 1], bx, by, 0, 0, texW, texH, texW, texH);
             }
         } else {
             // Ticks 4-7 (remaining 4 to 1): X oscillation
             int wobble = (remaining % 2 == 0) ? 2 : -2;
             if (stateIndex >= 1 && stateIndex <= 6) {
-                context.drawTexture(BAR_TEXTURES[stateIndex - 1], bx + wobble, by, 0, 0, texW, texH, texW, texH);
+                context.drawTexture(RenderPipelines.GUI_TEXTURED, BAR_TEXTURES[stateIndex - 1], bx + wobble, by, 0, 0, texW, texH, texW, texH);
             }
         }
     }
