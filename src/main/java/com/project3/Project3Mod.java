@@ -1471,9 +1471,9 @@ public class Project3Mod implements ModInitializer {
         }
 
         // 2. Ambient Sounds / Glitches — faster at higher escalation
-        int ambBaseDelay = 1200 - escalationLevel * 200;
-        if (ambBaseDelay < 400) ambBaseDelay = 400;
-        int ambTicks = AMBIENT_COOLDOWNS.computeIfAbsent(player.getUuid(), uuid -> player.getRandom().nextInt(ambBaseDelay) + ambBaseDelay);
+        int ambBaseDelay = Math.max(1200 - escalationLevel * 200, 400);
+        final int ambDelayFinal = ambBaseDelay;
+        int ambTicks = AMBIENT_COOLDOWNS.computeIfAbsent(player.getUuid(), uuid -> player.getRandom().nextInt(ambDelayFinal) + ambDelayFinal);
         if (ambTicks > 0) {
             AMBIENT_COOLDOWNS.put(player.getUuid(), ambTicks - 1);
         } else {
@@ -1715,9 +1715,9 @@ public class Project3Mod implements ModInitializer {
         }
 
         // 4. Automatic Screamer Sprint loop check in Gloom Void (escalation affects frequency and count)
-        int phCooldownBase = 1200 - escalationLevel * 150;
-        if (phCooldownBase < 300) phCooldownBase = 300;
-        int phTicks = PHANTOM_COOLDOWNS.computeIfAbsent(player.getUuid(), uuid -> player.getRandom().nextInt(phCooldownBase) + phCooldownBase);
+        int phCooldownBase = Math.max(1200 - escalationLevel * 150, 300);
+        final int phCooldownFinal = phCooldownBase;
+        int phTicks = PHANTOM_COOLDOWNS.computeIfAbsent(player.getUuid(), uuid -> player.getRandom().nextInt(phCooldownFinal) + phCooldownFinal);
         if (phTicks > 0) {
             PHANTOM_COOLDOWNS.put(player.getUuid(), phTicks - 1);
         } else {
