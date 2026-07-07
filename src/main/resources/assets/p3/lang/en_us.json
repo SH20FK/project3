@@ -1,0 +1,13 @@
+{
+  "effect.minecraft.luck": "Happiness",
+  "effect.minecraft.unluck": "Gloom",
+  "block.p3.producer_block": "Producer Block",
+  "category.p3": "Project3",
+  "key.p3.toggle_panel": "Toggle Achievement Panel",
+  "block.p3.phantom_block": "Phantom Block",
+  "block.p3.void_glass": "Void Glass",
+  "block.p3.dead_space": "Dead Space",
+  "item.p3.ai_chronometer": "AI Chronometer",
+  "item.p3.ai_dump_analyzer": "AI Dump Analyzer",
+  "item.p3.calming_amulet": "Calming Amulet"
+}

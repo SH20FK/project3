@@ -1,0 +1,23 @@
+{
+  "display": {
+    "icon": {
+      "id": "minecraft:flower_banner_pattern"
+    },
+    "title": {
+      "text": "Трафарет"
+    },
+    "description": {
+      "text": "Получить 4 любых узора флага."
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "custom": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "parent": "p3:ach_58"
+}

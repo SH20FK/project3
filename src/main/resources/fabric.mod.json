@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "p3",
+  "version": "${version}",
+  "name": "Project3",
+  "description": "Seasonal narrative system: phases, signals, storms, and finale choices.",
+  "authors": ["Project3"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.project3.Project3Mod"],
+    "client": ["com.project3.Project3Client"]
+  },
+  "mixins": [
+    "p3.mixins.json",
+    {
+      "config": "p3.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.9",
+    "fabric-api": "*",
+    "minecraft": ">=1.21.11"
+  }
+}

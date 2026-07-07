@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model": "p3:block/producer_block" }
+  }
+}

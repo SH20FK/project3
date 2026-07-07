@@ -1,0 +1,19 @@
+{
+  "required": true,
+  "package": "com.project3.mixin",
+  "refmap": "client-project3-refmap.json",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "MixinInventoryScreen",
+    "MixinScreen",
+    "MixinDebugHud",
+    "GameRendererAccessor",
+    "MixinMinecraftClient",
+    "MixinClientPlayerInteractionManager",
+    "MixinFogRenderer",
+    "MixinCompassState"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "package": "com.project3.mixin",
+  "refmap": "project3-refmap.json",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "MixinPlayerAdvancementTracker",
+    "MixinAbstractFurnaceBlockEntity",
+    "MixinMerchantResultSlot",
+    "MixinServerPlayerEntity",
+    "MixinPlayerListS2CPacketEntry"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -1,0 +1,43 @@
+[begin] (--antiX--)
+    [exec] (App Select) {/usr/local/bin/app-select} </usr/share/icons/Qogir/scalable/apps/gnome-searchtool.png>    
+    [exec] (Terminal) {desktop-defaults-run -t} </usr/share/icons/Qogir/scalable/apps/terminal.png>
+    [exec] (File Manager) {desktop-defaults-run -fm} </usr/share/icons/Qogir/48/apps/file-manager.png>
+    [exec] (Web Browser) {desktop-defaults-run -b} </usr/share/icons/Qogir/scalable/apps/web-browser.png>
+    [exec] (Editor) {desktop-defaults-run -te} </usr/share/icons/Qogir/scalable/apps/leafpad.png>
+    [separator]
+    [submenu] (Personal) </usr/share/icons/Qogir/scalable/places/user-identity.png>
+        [begin] (Personal)
+        [include] (~/.fluxbox/personal)
+    [end]
+    [submenu] (Applications) </usr/share/icons/Qogir/scalable/apps/applications-all.png>
+        [begin] (Applications)
+        [include] (~/.fluxbox/menu-applications)
+    [end]
+    [exec] (Refresh Menu) {desktop-menu --write-out-global} </usr/share/icons/Qogir/scalable/apps/reload.png>
+    [separator]
+    [submenu] (Desktop) </usr/share/icons/Qogir/48/places/user-desktop.png>
+        [submenu] (Other Desktops) </usr/share/icons/Qogir/48/places/user-desktop.png>
+            [begin] (Other Desktops)
+            [include] (/usr/share/desktop-session/wm-menus/fluxbox-wm-menu)
+        [end]
+        [exec] (RoxPanel on/off) {paneltoggle.sh} </usr/share/icons/Qogir/48/places/folder_color_default.png>
+        [exec] (Conky on/off) {conkytoggle.sh} </usr/share/icons/Qogir/48/places/folder_color_default.png>
+    [end]
+    [separator]
+    [exec] (App Killer) {xkill} </usr/share/icons/Qogir/scalable/apps/offgame.png>
+    [exec] (Control Centre) {antixcc.sh} </usr/share/icons/Qogir/scalable/apps/control-center2.png>
+    [exec] (Run) {gexec} </usr/share/icons/Qogir/48/apps/applications-utilities.png>
+    [separator]
+    [submenu] (Fluxbox Settings) </usr/share/icons/Qogir/scalable/apps/gnome-desktop-config.png>
+        [config] (Configuration)
+        [submenu] (Styles)
+            [stylesdir] (~/.fluxbox/styles)
+            [stylesmenu] (Fluxbox Styles) {/usr/share/fluxbox/styles}
+        [end]
+        [workspaces] (Workspaces)
+        [separator]
+        [reconfig] (Reconfigure)
+        [restart] (Restart)
+    [end]
+    [exec] (Exit) {desktop-session-exit} </usr/share/icons/Qogir/scalable/apps/session-properties.png>
+[end]

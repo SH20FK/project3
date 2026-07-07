@@ -1,0 +1,1 @@
+import java.lang.reflect.Method; public class Dump { public static void main(String[] args) throws Exception { for (Method m : net.minecraft.client.render.fog.FogRenderer.class.getDeclaredMethods()) { System.out.println(m); } } }
