@@ -1,5 +1,7 @@
 package com.project3.mixin;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.fog.FogRenderer;
@@ -9,8 +11,8 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import java.nio.ByteBuffer;
 
 @Mixin(FogRenderer.class)
 public class MixinFogRenderer {
@@ -22,34 +24,20 @@ public class MixinFogRenderer {
         }
     }
 
-    @ModifyVariable(method = "applyFog(Ljava/nio/ByteBuffer;ILorg/joml/Vector4f;FFFFFF)V", at = @At("HEAD"), argsOnly = true, index = 3)
-    private float p3$modifyEnvironmentalStart(float envStart) {
-        return p3$isGloomVoid() ? envStart * 0.3F : envStart;
-    }
-
-    @ModifyVariable(method = "applyFog(Ljava/nio/ByteBuffer;ILorg/joml/Vector4f;FFFFFF)V", at = @At("HEAD"), argsOnly = true, index = 4)
-    private float p3$modifyEnvironmentalEnd(float envEnd) {
-        return p3$isGloomVoid() ? envEnd * 0.6F : envEnd;
-    }
-
-    @ModifyVariable(method = "applyFog(Ljava/nio/ByteBuffer;ILorg/joml/Vector4f;FFFFFF)V", at = @At("HEAD"), argsOnly = true, index = 5)
-    private float p3$modifyRenderDistanceStart(float rdStart) {
-        return p3$isGloomVoid() ? rdStart * 0.3F : rdStart;
-    }
-
-    @ModifyVariable(method = "applyFog(Ljava/nio/ByteBuffer;ILorg/joml/Vector4f;FFFFFF)V", at = @At("HEAD"), argsOnly = true, index = 6)
-    private float p3$modifyRenderDistanceEnd(float rdEnd) {
-        return p3$isGloomVoid() ? rdEnd * 0.6F : rdEnd;
-    }
-
-    @ModifyVariable(method = "applyFog(Ljava/nio/ByteBuffer;ILorg/joml/Vector4f;FFFFFF)V", at = @At("HEAD"), argsOnly = true, index = 7)
-    private float p3$modifySkyEnd(float skyEnd) {
-        return p3$isGloomVoid() ? skyEnd * 0.6F : skyEnd;
-    }
-
-    @ModifyVariable(method = "applyFog(Ljava/nio/ByteBuffer;ILorg/joml/Vector4f;FFFFFF)V", at = @At("HEAD"), argsOnly = true, index = 8)
-    private float p3$modifyCloudEnd(float cloudEnd) {
-        return p3$isGloomVoid() ? cloudEnd * 0.6F : cloudEnd;
+    @WrapOperation(method = "rotate", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/fog/FogRenderer;applyFog(Ljava/nio/ByteBuffer;ILorg/joml/Vector4f;FFFFFF)V"))
+    private void wrapApplyFog(Operation<Void> original, FogRenderer instance, ByteBuffer buffer, int bufPos, Vector4f color,
+        float environmentalStart, float environmentalEnd, float renderDistanceStart, float renderDistanceEnd,
+        float skyEnd, float cloudEnd) {
+        if (p3$isGloomVoid()) {
+            environmentalStart *= 0.3F;
+            environmentalEnd *= 0.6F;
+            renderDistanceStart *= 0.3F;
+            renderDistanceEnd *= 0.6F;
+            skyEnd *= 0.6F;
+            cloudEnd *= 0.6F;
+        }
+        original.call(instance, buffer, bufPos, color, environmentalStart, environmentalEnd,
+            renderDistanceStart, renderDistanceEnd, skyEnd, cloudEnd);
     }
 
     @Unique
