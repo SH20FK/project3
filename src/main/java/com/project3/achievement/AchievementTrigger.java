@@ -134,8 +134,7 @@ public class AchievementTrigger {
                 yield false;
             }
             case "open_inventory" -> {
-                Stat<?> stat = Stats.CUSTOM.getOrCreateStat(com.project3.Project3Mod.OPEN_INVENTORY_STAT_ID);
-                yield player.getStatHandler().getStat(stat) >= threshold;
+                yield safeCustomStatCheck(player, com.project3.Project3Mod.OPEN_INVENTORY_STAT_ID, threshold);
             }
             case "all_tools" -> {
                 boolean hasSword = false;
@@ -183,8 +182,7 @@ public class AchievementTrigger {
                 yield found;
             }
             case "play_music_disc" -> {
-                Stat<?> stat = Stats.CUSTOM.getOrCreateStat(Identifier.of("minecraft", "play_record"));
-                yield player.getStatHandler().getStat(stat) >= threshold;
+                yield safeCustomStatCheck(player, Identifier.of("minecraft", "play_record"), threshold);
             }
             case "touch_bedrock" -> {
                 BlockPos pos = player.getBlockPos();
@@ -203,8 +201,7 @@ public class AchievementTrigger {
                 yield found;
             }
             case "brush_suspicious" -> {
-                Stat<?> stat = Stats.CUSTOM.getOrCreateStat(Identifier.of("minecraft", "clean_block"));
-                yield player.getStatHandler().getStat(stat) >= threshold;
+                yield safeCustomStatCheck(player, Identifier.of("minecraft", "clean_block"), threshold);
             }
             case "ride_pig" -> {
                 yield player.getVehicle() instanceof net.minecraft.entity.passive.PigEntity &&
@@ -221,8 +218,7 @@ public class AchievementTrigger {
                 yield trimmedCount >= 4;
             }
             case "enchant_level_30" -> {
-                Stat<?> stat = Stats.CUSTOM.getOrCreateStat(Identifier.of("minecraft", "enchant_item"));
-                yield player.getStatHandler().getStat(stat) >= threshold;
+                yield safeCustomStatCheck(player, Identifier.of("minecraft", "enchant_item"), threshold);
             }
             case "tame_cat" -> {
                 List<net.minecraft.entity.passive.CatEntity> cats = player.getEntityWorld().getEntitiesByClass(
@@ -351,11 +347,16 @@ public class AchievementTrigger {
                 yield foundDiscs.size() >= MUSIC_DISCS.size();
             }
             case "suicide" -> {
-                yield player.getStatHandler().getStat(Stats.CUSTOM.getOrCreateStat(Stats.DEATHS)) >= threshold && !player.isRemoved() && player.isAlive() && player.getHealth() > 0;
+                int deaths;
+                try {
+                    deaths = player.getStatHandler().getStat(Stats.DEATHS);
+                } catch (Exception e) {
+                    deaths = 0;
+                }
+                yield deaths >= threshold && !player.isRemoved() && player.isAlive() && player.getHealth() > 0;
             }
             case "give_allay_flower" -> {
-                Stat<?> stat = Stats.CUSTOM.getOrCreateStat(com.project3.Project3Mod.GIVE_ALLAY_FLOWER_STAT_ID);
-                yield player.getStatHandler().getStat(stat) >= threshold;
+                yield safeCustomStatCheck(player, com.project3.Project3Mod.GIVE_ALLAY_FLOWER_STAT_ID, threshold);
             }
             case "activate_conduit" -> {
                 yield player.hasStatusEffect(net.minecraft.entity.effect.StatusEffects.CONDUIT_POWER);
@@ -403,8 +404,7 @@ public class AchievementTrigger {
                 yield player.experienceLevel >= 45;
             }
             case "mace_kill_50_blocks" -> {
-                Stat<?> stat = Stats.CUSTOM.getOrCreateStat(com.project3.Project3Mod.MACE_KILL_50_BLOCKS_STAT_ID);
-                yield player.getStatHandler().getStat(stat) >= threshold;
+                yield safeCustomStatCheck(player, com.project3.Project3Mod.MACE_KILL_50_BLOCKS_STAT_ID, threshold);
             }
             case "use_any_potion" -> {
                 int count = player.getStatHandler().getStat(Stats.USED.getOrCreateStat(Items.POTION)) +
@@ -454,8 +454,7 @@ public class AchievementTrigger {
                 yield !golems.isEmpty();
             }
             case "shoot_firework_crossbow" -> {
-                Stat<?> stat = Stats.CUSTOM.getOrCreateStat(com.project3.Project3Mod.SHOOT_FIREWORK_CROSSBOW_STAT_ID);
-                yield player.getStatHandler().getStat(stat) >= threshold;
+                yield safeCustomStatCheck(player, com.project3.Project3Mod.SHOOT_FIREWORK_CROSSBOW_STAT_ID, threshold);
             }
             case "all_terracotta" -> {
                 Set<String> foundTerracotta = new HashSet<>();
@@ -677,6 +676,7 @@ public class AchievementTrigger {
      */
     public boolean isStatCumulative() {
         if (type == Type.CUSTOM) {
+            if (target == null || target.isEmpty()) return false;
             String[] parts = target.split(":");
             String name = parts[0];
             // All custom triggers that work via stats (not inventory-snapshot) are cumulative
@@ -739,20 +739,16 @@ public class AchievementTrigger {
                 String name = parts[0];
                 yield switch (name) {
                     case "open_inventory" -> {
-                        Stat<?> stat = Stats.CUSTOM.getOrCreateStat(com.project3.Project3Mod.OPEN_INVENTORY_STAT_ID);
-                        yield player.getStatHandler().getStat(stat);
+                        yield safeCustomStat(player, com.project3.Project3Mod.OPEN_INVENTORY_STAT_ID);
                     }
                     case "play_music_disc" -> {
-                        Stat<?> stat = Stats.CUSTOM.getOrCreateStat(Identifier.of("minecraft", "play_record"));
-                        yield player.getStatHandler().getStat(stat);
+                        yield safeCustomStat(player, Identifier.of("minecraft", "play_record"));
                     }
                     case "brush_suspicious" -> {
-                        Stat<?> stat = Stats.CUSTOM.getOrCreateStat(Identifier.of("minecraft", "clean_block"));
-                        yield player.getStatHandler().getStat(stat);
+                        yield safeCustomStat(player, Identifier.of("minecraft", "clean_block"));
                     }
                     case "enchant_level_30" -> {
-                        Stat<?> stat = Stats.CUSTOM.getOrCreateStat(Identifier.of("minecraft", "enchant_item"));
-                        yield player.getStatHandler().getStat(stat);
+                        yield safeCustomStat(player, Identifier.of("minecraft", "enchant_item"));
                     }
                     // Fix #11: use cached MONSTER_TYPES
                     case "kill_monster" -> {
@@ -794,16 +790,13 @@ public class AchievementTrigger {
                         yield player.getStatHandler().getStat(stat);
                     }
                     case "give_allay_flower" -> {
-                        Stat<?> stat = Stats.CUSTOM.getOrCreateStat(com.project3.Project3Mod.GIVE_ALLAY_FLOWER_STAT_ID);
-                        yield player.getStatHandler().getStat(stat);
+                        yield safeCustomStat(player, com.project3.Project3Mod.GIVE_ALLAY_FLOWER_STAT_ID);
                     }
                     case "mace_kill_50_blocks" -> {
-                        Stat<?> stat = Stats.CUSTOM.getOrCreateStat(com.project3.Project3Mod.MACE_KILL_50_BLOCKS_STAT_ID);
-                        yield player.getStatHandler().getStat(stat);
+                        yield safeCustomStat(player, com.project3.Project3Mod.MACE_KILL_50_BLOCKS_STAT_ID);
                     }
                     case "shoot_firework_crossbow" -> {
-                        Stat<?> stat = Stats.CUSTOM.getOrCreateStat(com.project3.Project3Mod.SHOOT_FIREWORK_CROSSBOW_STAT_ID);
-                        yield player.getStatHandler().getStat(stat);
+                        yield safeCustomStat(player, com.project3.Project3Mod.SHOOT_FIREWORK_CROSSBOW_STAT_ID);
                     }
                     case "use_any_potion" -> player.getStatHandler().getStat(Stats.USED.getOrCreateStat(Items.POTION)) +
                                              player.getStatHandler().getStat(Stats.USED.getOrCreateStat(Items.SPLASH_POTION)) +
@@ -817,6 +810,24 @@ public class AchievementTrigger {
             }
             default -> 0;
         };
+    }
+
+    private static int safeCustomStat(ServerPlayerEntity player, Identifier statId) {
+        try {
+            Stat<?> stat = Stats.CUSTOM.getOrCreateStat(statId);
+            return player.getStatHandler().getStat(stat);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private static boolean safeCustomStatCheck(ServerPlayerEntity player, Identifier statId, int threshold) {
+        try {
+            Stat<?> stat = Stats.CUSTOM.getOrCreateStat(statId);
+            return player.getStatHandler().getStat(stat) >= threshold;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public String getIconItemId() {

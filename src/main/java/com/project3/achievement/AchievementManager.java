@@ -175,7 +175,11 @@ public class AchievementManager {
         lastSentPayloads.keySet().removeIf(uuid -> server.getPlayerManager().getPlayer(uuid) == null);
 
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
-            checkPlayer(player, state);
+            try {
+                checkPlayer(player, state);
+            } catch (Exception e) {
+                LOGGER.error("Error checking achievements for player {}: {}", player.getName().getString(), e.getMessage(), e);
+            }
             syncActiveAchievement(player, state);
         }
     }
