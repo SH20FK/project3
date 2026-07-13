@@ -237,7 +237,7 @@ public class Project3Mod implements ModInitializer {
     private static final long END_LOCK_MS    = 240L * 3_600_000L;
 
     /** Invisible wall threshold */
-    private static final int WALL_THRESHOLD = 20_000;
+    private static final int WALL_THRESHOLD = 16_000;
 
     @Override
     public void onInitialize() {
@@ -440,16 +440,25 @@ public class Project3Mod implements ModInitializer {
 
             int blockX = cx * 16;
             int blockZ = cz * 16;
-            boolean inStripX = (Math.abs(blockX) >= 19_800 && Math.abs(blockX) <= 20_200);
-            boolean inStripZ = (Math.abs(blockZ) >= 19_800 && Math.abs(blockZ) <= 20_200);
 
-            if (!(inStripX || inStripZ)) return;
+            int absX = Math.abs(blockX);
+            int absZ = Math.abs(blockZ);
 
-            // Mark before scheduling so a rapid reload cannot enqueue a second task.
+            // Producers spawn in the 15000-16000 zone (approach to the wall)
+            int distX = absX - 15_000;
+            int distZ = absZ - 15_000;
+            boolean inZoneX = distX >= 0 && distX <= 1000;
+            boolean inZoneZ = distZ >= 0 && distZ <= 1000;
+            if (!(inZoneX || inZoneZ)) return;
+
             state.markGeneratedProducer(cx, cz);
 
+            // Frequency increases as you approach 16000
+            int dist = Math.min(Math.max(inZoneX ? distX : distZ, 0), 1000);
+            int divisor = 200 - (int)(dist / 1000.0 * 180); // 200 at 15000, 20 at 16000
+
             java.util.Random random = new java.util.Random((long)cx * 341873128712L + (long)cz * 132897987541L + world.getSeed());
-            if (random.nextInt(40) != 0) return;
+            if (random.nextInt(Math.max(divisor, 1)) != 0) return;
 
             int rx = blockX + random.nextInt(16);
             int rz = blockZ + random.nextInt(16);
