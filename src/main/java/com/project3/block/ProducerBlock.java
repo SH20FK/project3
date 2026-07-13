@@ -2,19 +2,11 @@ package com.project3.block;
 
 import com.mojang.serialization.MapCodec;
 import com.project3.block.entity.ProducerBlockEntity;
-import com.project3.block.entity.ProducerScreenHandler;
 import net.minecraft.block.*;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityTicker;
 import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.screen.NamedScreenHandlerFactory;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
 import net.minecraft.sound.BlockSoundGroup;
-import net.minecraft.text.Text;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
@@ -62,16 +54,4 @@ public class ProducerBlock extends BlockWithEntity {
         return null;
     }
 
-    @Override
-    protected ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
-        if (world.isClient()) return ActionResult.SUCCESS;
-
-        if (world.getBlockEntity(pos) instanceof ProducerBlockEntity be) {
-            player.openHandledScreen(new SimpleNamedScreenHandlerFactory(
-                    (syncId, playerInv, p) -> new ProducerScreenHandler(syncId, playerInv, be.getProcessingInventory(), pos),
-                    Text.literal("ПРОДЮСЕР-СТАНЦИЯ")
-            ));
-        }
-        return ActionResult.SUCCESS;
-    }
 }

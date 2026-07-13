@@ -52,12 +52,6 @@ public class Project3Client implements ClientModInitializer {
                 com.project3.block.entity.renderer.PhantomBlockEntityRenderer::new
         );
 
-        // ── Register Screen Handler → Screen mapping ─────────────────────
-        net.minecraft.client.gui.screen.ingame.HandledScreens.register(
-                Project3Mod.PRODUCER_SCREEN_HANDLER,
-                com.project3.client.screen.ProducerScreen::new
-        );
-
         // BlockRenderLayerMap no longer needed in 1.21.11+ for Cutout, 
         // as it's defined in model json or block properties usually.
 

@@ -9,7 +9,7 @@
           "height": 63
         },
         {
-          "block": "p3:dead_space",
+          "block": "p3:producer_block",
           "height": 1
         }
       ],

@@ -35,6 +35,7 @@ import net.minecraft.item.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.Hand;
+import net.minecraft.world.Heightmap;
 import net.minecraft.world.rule.GameRules;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.util.math.Box;
@@ -141,9 +142,6 @@ public class Project3Mod implements ModInitializer {
 
     public static final com.project3.block.PhantomBlock PHANTOM_BLOCK = new com.project3.block.PhantomBlock();
     public static BlockEntityType<com.project3.block.entity.PhantomBlockEntity> PHANTOM_BLOCK_ENTITY_TYPE;
-
-    // Screen handler type for Producer Block GUI
-    public static net.minecraft.screen.ScreenHandlerType<com.project3.block.entity.ProducerScreenHandler> PRODUCER_SCREEN_HANDLER;
 
     public static final net.minecraft.block.Block VOID_GLASS = new com.project3.block.VoidGlassBlock(net.minecraft.block.AbstractBlock.Settings.create()
         .registryKey(net.minecraft.registry.RegistryKey.of(net.minecraft.registry.RegistryKeys.BLOCK, net.minecraft.util.Identifier.of(MODID, "void_glass")))
@@ -285,16 +283,6 @@ public class Project3Mod implements ModInitializer {
                 net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder.create(com.project3.block.entity.PhantomBlockEntity::new, PHANTOM_BLOCK).build()
         );
 
-        // ── Register Screen Handler ──────────────────────────────────────
-        PRODUCER_SCREEN_HANDLER = Registry.register(
-                Registries.SCREEN_HANDLER,
-                Identifier.of(MODID, "producer_block"),
-                new net.minecraft.screen.ScreenHandlerType<com.project3.block.entity.ProducerScreenHandler>(
-                    (syncId, playerInv) -> new com.project3.block.entity.ProducerScreenHandler(syncId, playerInv, new net.minecraft.inventory.SimpleInventory(2), net.minecraft.util.math.BlockPos.ORIGIN),
-                    net.minecraft.resource.featuretoggle.FeatureFlags.DEFAULT_ENABLED_FEATURES
-                )
-        );
-
         // ── Register Worldgen Feature ──────────────────────────────────────
         Registry.register(Registries.FEATURE, Identifier.of(MODID, "producer_block"), PRODUCER_BLOCK_FEATURE);
 
@@ -315,21 +303,6 @@ public class Project3Mod implements ModInitializer {
         PayloadTypeRegistry.playS2C().register(com.project3.network.FogTargetPayload.ID, com.project3.network.FogTargetPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(com.project3.network.ParanoiaPayload.ID, com.project3.network.ParanoiaPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(com.project3.network.DreadPayload.ID, com.project3.network.DreadPayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(com.project3.network.OpenProducerScreenPayload.ID, com.project3.network.OpenProducerScreenPayload.CODEC);
-
-        // Register custom open_inventory stat registry key and C2S network payload
-        Registry.register(Registries.CUSTOM_STAT, OPEN_INVENTORY_STAT_ID, OPEN_INVENTORY_STAT_ID);
-        net.minecraft.stat.Stats.CUSTOM.getOrCreateStat(OPEN_INVENTORY_STAT_ID);
-
-        Registry.register(Registries.CUSTOM_STAT, GIVE_ALLAY_FLOWER_STAT_ID, GIVE_ALLAY_FLOWER_STAT_ID);
-        net.minecraft.stat.Stats.CUSTOM.getOrCreateStat(GIVE_ALLAY_FLOWER_STAT_ID);
-
-        Registry.register(Registries.CUSTOM_STAT, MACE_KILL_50_BLOCKS_STAT_ID, MACE_KILL_50_BLOCKS_STAT_ID);
-        net.minecraft.stat.Stats.CUSTOM.getOrCreateStat(MACE_KILL_50_BLOCKS_STAT_ID);
-
-        Registry.register(Registries.CUSTOM_STAT, SHOOT_FIREWORK_CROSSBOW_STAT_ID, SHOOT_FIREWORK_CROSSBOW_STAT_ID);
-        net.minecraft.stat.Stats.CUSTOM.getOrCreateStat(SHOOT_FIREWORK_CROSSBOW_STAT_ID);
-
         PayloadTypeRegistry.playC2S().register(OpenInventoryPayload.ID, OpenInventoryPayload.CODEC);
         PayloadTypeRegistry.playC2S().register(com.project3.network.AdminToolUsePayload.ID, com.project3.network.AdminToolUsePayload.CODEC);
         
@@ -506,11 +479,6 @@ public class Project3Mod implements ModInitializer {
         // ── Attempt to break Producer Block Callback ───────────────────────
         AttackBlockCallback.EVENT.register((player, world, hand, pos, direction) -> {
             if (world.isClient()) return ActionResult.PASS;
-            if (world.getBlockState(pos).isOf(PRODUCER_BLOCK)) {
-                if (world.getRandom().nextInt(20) == 0) {
-                    player.sendMessage(Text.literal("§c[Система]: §eУважаемый житель! Зафиксировано несанкционированное вмешательство в работу муниципального оборудования. Объект является госсобственностью. (Код: ERR_STATE_PROPERTY_DAMAGE_99)"), false);
-                }
-            }
             return ActionResult.PASS;
         });
 
@@ -580,11 +548,6 @@ public class Project3Mod implements ModInitializer {
 
             // Tick players' Happiness, Gloom, Unnamed Effect, and Sync
             for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
-                // Pumpkin mask hint - send once when player first equips pumpkin
-                if (server.getTicks() % 20 == 0 && isWearingPumpkin(player) && PUMPKIN_HINT_SENT.add(player.getUuid())) {
-                    player.sendMessage(Text.literal("§6[Подсказка]: §fТы носишь резной тыквенный шлем. Фантомы не могут тебя видеть вблизи."), false);
-                    player.sendMessage(Text.literal("§7Но будь осторожен — за пределами 16 блоков они атакуют всех без разбора."), false);
-                }
                 // Clear hint flag if player removes pumpkin
                 if (!isWearingPumpkin(player)) {
                     PUMPKIN_HINT_SENT.remove(player.getUuid());
@@ -634,16 +597,10 @@ public class Project3Mod implements ModInitializer {
 
                     if (happiness == 1) {
                         state.setGloomPermanent(player.getUuid(), true);
-                        player.sendMessage(Text.literal("§cСчастье покинуло вас... Вы чувствуете глубокое уныние."), false);
                         player.playSound(SoundEvents.BLOCK_BEACON_DEACTIVATE, 1.0f, 0.6f);
                         player.playSound(SoundEvents.ENTITY_WITHER_SPAWN, 0.5f, 0.5f);
-
-                        // Title message
                         player.networkHandler.sendPacket(new TitleS2CPacket(
                                 Text.literal("СЧАСТЬЕ ПОКИНУЛО ВАС").formatted(Formatting.DARK_RED)
-                        ));
-                        player.networkHandler.sendPacket(new SubtitleS2CPacket(
-                                Text.literal("Вы чувствуете глубокое уныние...")
                         ));
 
                         // Add temporary transition effects
@@ -661,12 +618,8 @@ public class Project3Mod implements ModInitializer {
                             });
                         }
                     } else if (happiness == 1200) {
-                        // 1 minute warning
-                        player.sendMessage(Text.literal("§e[Система]§r: §7Счастье угасает... Осталась минута."), false);
                         player.playSound(SoundEvents.BLOCK_NOTE_BLOCK_CHIME.value(), 0.5f, 0.7f);
                     } else if (happiness == 200) {
-                        // 10 second warning
-                        player.sendMessage(Text.literal("§c[Система]§r: §7Счастье вот-вот исчезнет!"), false);
                         player.playSound(SoundEvents.BLOCK_NOTE_BLOCK_CHIME.value(), 0.8f, 0.5f);
                     }
                 } else {
@@ -753,13 +706,11 @@ public class Project3Mod implements ModInitializer {
                     
                     if (rand.nextFloat() < 0.005f * level) {
                         player.setOnFireFor(3 + level * 2);
-                        player.sendMessage(Text.literal("§cВы внезапно загорелись!"), false);
                         player.playSound(SoundEvents.ITEM_FIRECHARGE_USE, 1.0f, 1.0f);
                     }
 
                     if (rand.nextFloat() < 0.002f * level) {
                         ServerPlayNetworking.send(player, new com.project3.network.ChunkReloadPayload());
-                        player.sendMessage(Text.literal("§7[Система] Произошла перезагрузка чанков."), false);
                     }
 
                     if (rand.nextFloat() < 0.05f * level) {
@@ -956,8 +907,7 @@ public class Project3Mod implements ModInitializer {
                     
                     world.setBlockState(pos, replacement, Block.NOTIFY_ALL);
                     world.playSound(null, pos, SoundEvents.BLOCK_STONE_BREAK, SoundCategory.BLOCKS, 1.0f, 1.0f);
-                    spe.sendMessage(Text.literal("§cУныние обратило добытую руду в простой камень..."), false);
-                    return false; // Cancel block break & drops
+                    return false;
                 }
             }
             return true;
@@ -1003,49 +953,43 @@ public class Project3Mod implements ModInitializer {
             ItemStack heldStack = serverPlayer.getStackInHand(hand);
 
             Project3State state = Project3State.getOrCreate(sw.getServer());
-            Act act = getAct(state);
+
+            // Check if ANY player on the server has completed all overlord achievements
+            int totalOverlord = ACHIEVEMENT_MANAGER.getAchievementCount();
+            boolean overlordCompleted = state.isSeasonStarted() && calibrationTicksLeft <= 0 &&
+                sw.getServer().getPlayerManager().getPlayerList().stream()
+                    .anyMatch(p -> state.getCompletedAchievements(p.getUuid()).size() >= totalOverlord);
 
             // 1. Nether portal creation/activation lock
             boolean isFlintSteel = heldStack.isOf(Items.FLINT_AND_STEEL) || heldStack.isOf(Items.FIRE_CHARGE);
             if (isFlintSteel && clickedBlock == Blocks.OBSIDIAN) {
-                boolean locked = false;
-                if (!serverPlayer.isCreative()) {
-                    if (!state.isSeasonStarted() || calibrationTicksLeft > 0) {
-                        locked = true;
-                    } else if (act == Act.I && !state.isNetherForceUnlocked()) {
-                        locked = true;
-                    }
+                boolean locked = true;
+                if (serverPlayer.isCreative()) {
+                    locked = false;
+                } else if (overlordCompleted || state.isNetherForceUnlocked()) {
+                    locked = false;
                 }
 
                 if (locked) {
                     sw.createExplosion(null, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 4.0f, false, World.ExplosionSourceType.NONE);
                     serverPlayer.damage(sw, sw.getDamageSources().explosion(null, null), 4.0f);
                     
-                    // Low-pitch warp travel sound and anvil crash sound
                     sw.playSound(null, pos, SoundEvents.BLOCK_PORTAL_TRAVEL, SoundCategory.BLOCKS, 1.0f, 0.5f);
                     sw.playSound(null, pos, SoundEvents.BLOCK_ANVIL_LAND, SoundCategory.BLOCKS, 1.0f, 1.0f);
                     
-                    // Spiral portal particles vortex
                     double centerX = pos.getX() + 0.5;
                     double centerY = pos.getY() + 0.5;
                     double centerZ = pos.getZ() + 0.5;
                     for (int i = 0; i < 150; i++) {
                         double theta = i * 0.2;
                         double radius = 0.1 + i * 0.02;
-                        double yOffset = (i * 0.03) - 2.0; // from -2.0 to 2.5 height
+                        double yOffset = (i * 0.03) - 2.0;
                         double px = centerX + Math.cos(theta) * radius;
                         double py = centerY + yOffset;
                         double pz = centerZ + Math.sin(theta) * radius;
                         sw.spawnParticles(ParticleTypes.PORTAL, px, py, pz, 1, 0.0, 0.0, 0.0, 0.0);
                     }
 
-                    if (!state.isSeasonStarted() || calibrationTicksLeft > 0) {
-                        serverPlayer.sendMessage(Text.literal("§c[Система] Портал в Незер заблокирован. Сезон не начат."), false);
-                    } else {
-                        serverPlayer.sendMessage(Text.literal("§c[Система] Портал в Незер заблокирован на первые 72 часа сезона."), false);
-                    }
-                    
-                    // Force client update on offset block (where client predicts fire block)
                     BlockPos offsetPos = pos.offset(hitResult.getSide());
                     sw.updateListeners(offsetPos, sw.getBlockState(offsetPos), sw.getBlockState(offsetPos), 3);
                     
@@ -1053,29 +997,19 @@ public class Project3Mod implements ModInitializer {
                 }
             }
 
-            // 2. End portal frame Ender Eye insertion lock
+            // 2. End portal frame Ender Eye insertion lock — locked until nether quests are added
             boolean isEnderEye = heldStack.isOf(Items.ENDER_EYE);
             if (isEnderEye && clickedBlock == Blocks.END_PORTAL_FRAME) {
-                boolean locked = false;
-                if (!serverPlayer.isCreative()) {
-                    if (!state.isSeasonStarted() || calibrationTicksLeft > 0) {
-                        locked = true;
-                    } else if ((act == Act.I || act == Act.II || act == Act.III) && !state.isEndForceUnlocked()) {
-                        locked = true;
-                    }
+                boolean locked = true;
+                if (serverPlayer.isCreative()) {
+                    locked = false;
+                } else if (state.isEndForceUnlocked()) {
+                    locked = false;
                 }
 
                 if (locked) {
                     sw.playSound(null, pos, SoundEvents.BLOCK_GLASS_BREAK, SoundCategory.BLOCKS, 1.0f, 1.0f);
-                    if (!state.isSeasonStarted() || calibrationTicksLeft > 0) {
-                        serverPlayer.sendMessage(Text.literal("§c[Система] Портал в Энд заблокирован. Сезон не начат."), false);
-                    } else {
-                        serverPlayer.sendMessage(Text.literal("§c[Система] Портал в Энд заблокирован на первые 10 дней (240 часов) сезона."), false);
-                    }
-                    
-                    // Force client update on frame block (where client predicts eye frame)
                     sw.updateListeners(pos, clickedState, clickedState, 3);
-                    
                     return ActionResult.FAIL;
                 }
             }
@@ -1100,7 +1034,6 @@ public class Project3Mod implements ModInitializer {
 
         // First offense: warning only (no teleport, no debuffs)
         if (violations == 1) {
-            player.sendMessage(Text.literal("§c[Система]: §eВнимание! Вы приближаетесь к границе сектора. Нарушение паспортного режима повлечёт за собой принудительную депортацию."), false);
             player.networkHandler.sendPacket(new TitleS2CPacket(
                     Text.literal("§e⚠ ВНИМАНИЕ").formatted(Formatting.YELLOW)
             ));
@@ -1141,9 +1074,6 @@ public class Project3Mod implements ModInitializer {
 
         // Scary Elder Guardian sound effect on boundary violation
         overworld.playSound(null, player.getBlockPos(), SoundEvents.ENTITY_ELDER_GUARDIAN_CURSE, SoundCategory.MASTER, 1.0f, 0.5f);
-
-        // System warning message
-        player.sendMessage(Text.literal("§c[Система]: §eВнимание! Вы покинули согласованный жилой сектор. Ваше нахождение за пределами зоны несанкционировано. Зафиксировано нарушение паспортного режима. (Код: 0xBORDER_LIMIT_EXCEEDED)"), false);
 
         // Title message
         player.networkHandler.sendPacket(new TitleS2CPacket(
@@ -1211,44 +1141,26 @@ public class Project3Mod implements ModInitializer {
 
     private static void spawnPhantomBlockNear(ServerPlayerEntity player) {
         ServerWorld world = (ServerWorld) player.getEntityWorld();
-        // Never spawn PhantomBlocks in the Gloom Void — they replace floor and trap players
         if (world.getRegistryKey() == GLOOM_VOID_WORLD_KEY) return;
         net.minecraft.util.math.random.Random rand = player.getRandom();
         int rx = player.getBlockX() + rand.nextInt(11) - 5;
-        int ry = player.getBlockY() + rand.nextInt(5) - 2;
         int rz = player.getBlockZ() + rand.nextInt(11) - 5;
+
+        // Find topmost solid block at the chosen X,Z
+        int ry = world.getTopY(Heightmap.Type.MOTION_BLOCKING, rx, rz);
         BlockPos pos = new BlockPos(rx, ry, rz);
         BlockState state = world.getBlockState(pos);
-        
-        // Allow replacing solid blocks OR air (floating phantom illusion)
+
+        if (state.isAir()) return; // no ground to place on
+
         if (state.isOf(com.project3.Project3Mod.PHANTOM_BLOCK) || state.isOf(com.project3.Project3Mod.PRODUCER_BLOCK)
             || state.hasBlockEntity() || state.isOf(Blocks.BEDROCK)) {
             return;
         }
 
-        BlockState replacedState;
-        if (!state.isAir()) {
-            // Solid block - use the existing block as replaced state
-            replacedState = state;
-        } else {
-            // Air - find a nearby solid block to mimic
-            replacedState = null;
-            for (BlockPos neighbor : new BlockPos[]{pos.down(), pos.north(), pos.south(), pos.east(), pos.west(), pos.up()}) {
-                BlockState ns = world.getBlockState(neighbor);
-                if (!ns.isAir() && !ns.isOf(com.project3.Project3Mod.PHANTOM_BLOCK) && !ns.isOf(com.project3.Project3Mod.PRODUCER_BLOCK)
-                        && ns.getFluidState().isEmpty() && !ns.hasBlockEntity() && !ns.isOf(Blocks.BEDROCK)) {
-                    replacedState = ns;
-                    break;
-                }
-            }
-            if (replacedState == null) {
-                replacedState = Blocks.STONE.getDefaultState();
-            }
-        }
- 
         world.setBlockState(pos, com.project3.Project3Mod.PHANTOM_BLOCK.getDefaultState(), Block.NOTIFY_LISTENERS);
         if (world.getBlockEntity(pos) instanceof com.project3.block.entity.PhantomBlockEntity pbe) {
-            pbe.setReplacedState(replacedState);
+            pbe.setReplacedState(state);
         }
     }
  

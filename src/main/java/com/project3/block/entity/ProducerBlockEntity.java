@@ -26,7 +26,6 @@ import net.minecraft.util.math.random.Random;
 import net.minecraft.world.World;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
@@ -116,7 +115,9 @@ public class ProducerBlockEntity extends BlockEntity {
         // Fix #19: wrap tickCounter to prevent overflow
         be.tickCounter = (be.tickCounter + 1) % (EFFECT_TICK_INTERVAL * 1000);
 
-        Project3State p3state = Project3State.getOrCreate(serverWorld.getServer());
+        var server = serverWorld.getServer();
+        if (server == null) return;
+        Project3State p3state = Project3State.getOrCreate(server);
 
         // Fix #13: one entity query with max radius, then filter by distance for inner checks
         double outerRadius = 10.0;
@@ -137,7 +138,6 @@ public class ProducerBlockEntity extends BlockEntity {
             if (sqDist <= warningRadius * warningRadius && sqDist > outerRadius * outerRadius) {
                 if (rand.nextInt(100) == 0) {
                     player.playSound(net.minecraft.sound.SoundEvents.BLOCK_NOTE_BLOCK_BIT.value(), 0.5f, 0.3f);
-                    player.sendMessage(Text.literal("§7[Система] §eОбнаружена аномальная активность излучателя. Не приближайтесь."), false);
                 }
             }
 
@@ -145,11 +145,9 @@ public class ProducerBlockEntity extends BlockEntity {
             if (sqDist <= outerRadius * outerRadius) {
                 if (be.tickCounter % 20 == 0 && rand.nextInt(600) == 0) {
                     player.setOnFireFor(4);
-                    player.sendMessage(Text.literal("§cТепловой выброс излучателя вызвал перегрузку! Вы загорелись!"), false);
                 }
                 if (be.tickCounter % 20 == 0 && rand.nextInt(1200) == 0) {
                     ServerPlayNetworking.send(player, new com.project3.network.ChunkReloadPayload());
-                    player.sendMessage(Text.literal("§7[Система] Рядом с излучателем зафиксированы частотные искажения. Перезагрузка чанков..."), false);
                 }
             }
 
@@ -186,18 +184,6 @@ public class ProducerBlockEntity extends BlockEntity {
 
         // ── Processing Logic ───────────────────────────────────────────
         be.tickProcessing(serverWorld);
-
-        // ── Sync GUI data to open screen handlers ─────────────────────
-        if (be.tickCounter % 5 == 0) { // sync every 5 ticks
-            int zone = be.getZone(serverWorld);
-            for (ServerPlayerEntity p : serverWorld.getServer().getPlayerManager().getPlayerList()) {
-                if (p.currentScreenHandler instanceof ProducerScreenHandler handler && handler.blockPos.equals(pos)) {
-                    handler.setProgress(be.processingProgress);
-                    handler.setMaxProgress(be.processingMaxProgress);
-                    handler.setZone(zone);
-                }
-            }
-        }
     }
 
     private void tickProcessing(ServerWorld world) {
@@ -284,15 +270,17 @@ public class ProducerBlockEntity extends BlockEntity {
     private int getZone(ServerWorld world) {
         if (world.getRegistryKey() != net.minecraft.registry.RegistryKey.of(net.minecraft.registry.RegistryKeys.WORLD,
                 net.minecraft.util.Identifier.of("p3", "gloom_void"))) {
-            // Not in Gloom Void — check if near world border in overworld
-            ServerWorld overworld = world.getServer().getOverworld();
+            var server = world.getServer();
+            if (server == null) return 0;
+            ServerWorld overworld = server.getOverworld();
+            if (overworld == null) return 0;
             double borderDist = overworld.getWorldBorder().getDistanceInsideBorder(pos.getX(), pos.getZ());
             if (borderDist < 100) return 3;
             if (borderDist < 200) return 2;
             if (borderDist < 300) return 1;
             return 0;
         }
-        return 2; // In Gloom Void = dangerous by default
+        return 2;
     }
 
     private Item getTierUpgrade(Item current) {
@@ -381,7 +369,7 @@ public class ProducerBlockEntity extends BlockEntity {
             processingInventory.setStack(0, view.read("Slot0", ItemStack.CODEC).orElse(ItemStack.EMPTY));
             processingInventory.setStack(1, view.read("Slot1", ItemStack.CODEC).orElse(ItemStack.EMPTY));
         } catch (Exception e) {
-            // ignore
+            Project3Mod.LOGGER.error("Failed to read ProducerBlockEntity data at {}", pos, e);
         }
     }
 
@@ -389,7 +377,9 @@ public class ProducerBlockEntity extends BlockEntity {
 
     @Override
     public NbtCompound toInitialChunkDataNbt(RegistryWrapper.WrapperLookup registries) {
-        return createNbt(registries);
+        // Client doesn't need processing data
+        NbtCompound nbt = new NbtCompound();
+        return nbt;
     }
 
     @Override

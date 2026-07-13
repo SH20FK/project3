@@ -157,6 +157,10 @@ public class AchievementManager {
         return Collections.unmodifiableList(achievements);
     }
 
+    public int getAchievementCount() {
+        return achievements.size();
+    }
+
     public AchievementDefinition getAchievement(int index) {
         if (index < 0 || index >= achievements.size()) return null;
         return achievements.get(index);
@@ -319,12 +323,6 @@ public class AchievementManager {
         // Max happiness
         com.project3.Project3Mod.grantHappiness(player, state, 120000L);
 
-        // Broadcast to all players
-        for (ServerPlayerEntity p : world.getServer().getPlayerManager().getPlayerList()) {
-            p.sendMessage(net.minecraft.text.Text.literal(
-                    "§6§l★ §e" + player.getName().getString() + " §fзавершил все испытания сезона! §6§l★"), false);
-        }
-
         LOGGER.info("[Project3] Player {} completed ALL achievements - Season End Ceremony triggered",
                 player.getName().getString());
     }
@@ -440,7 +438,6 @@ public class AchievementManager {
                 player.networkHandler.sendPacket(new TitleS2CPacket(
                         Text.literal("critical error").formatted(Formatting.RED, Formatting.BOLD)
                 ));
-                player.sendMessage(Text.literal("§c[System] critical error"), false);
             }
             case "burn_item" -> {
                 if (achievement.getTrigger().getType() == AchievementTrigger.Type.INVENTORY_ITEM) {
