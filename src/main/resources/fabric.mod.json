@@ -3,8 +3,8 @@
   "id": "p3",
   "version": "${version}",
   "name": "Project3",
-  "description": "Seasonal narrative system: phases, signals, storms, and finale choices.",
-  "authors": ["Project3"],
+  "description": "special for BackStage server",
+  "authors": ["SH20FK"],
   "license": "MIT",
   "environment": "*",
   "entrypoints": {
