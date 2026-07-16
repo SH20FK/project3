@@ -136,6 +136,12 @@ public final class ModRegistries {
         HAPPINESS_EFFECT = Registries.STATUS_EFFECT.getEntry(happinessId).orElseThrow();
         GLOOM_EFFECT = Registries.STATUS_EFFECT.getEntry(gloomId).orElseThrow();
 
+        // Custom Stats
+        Registry.register(Registries.CUSTOM_STAT, com.project3.Project3Mod.GIVE_ALLAY_FLOWER_STAT_ID, com.project3.Project3Mod.GIVE_ALLAY_FLOWER_STAT_ID);
+        Registry.register(Registries.CUSTOM_STAT, com.project3.Project3Mod.MACE_KILL_50_BLOCKS_STAT_ID, com.project3.Project3Mod.MACE_KILL_50_BLOCKS_STAT_ID);
+        Registry.register(Registries.CUSTOM_STAT, com.project3.Project3Mod.SHOOT_FIREWORK_CROSSBOW_STAT_ID, com.project3.Project3Mod.SHOOT_FIREWORK_CROSSBOW_STAT_ID);
+        Registry.register(Registries.CUSTOM_STAT, com.project3.Project3Mod.PLAY_MUSIC_DISC_STAT_ID, com.project3.Project3Mod.PLAY_MUSIC_DISC_STAT_ID);
+
         // World-gen Feature
         Registry.register(Registries.FEATURE, Identifier.of(MODID, "producer_block"), PRODUCER_BLOCK_FEATURE);
     }
