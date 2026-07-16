@@ -39,17 +39,11 @@ public final class WorldBorderManager {
                 border.setCenter(0.0, 0.0);
                 border.setSize(5.9999968E7);
             } else {
-                // Season started: center at spawn and enforce correct size/interpolation
+                // Season started: center at spawn, size 16000 (calibration target)
                 border.setCenter(spawnX, spawnZ);
                 border.setWarningBlocks(3);
                 border.setSafeZone(1.0);
-                long elapsed = System.currentTimeMillis() - state.getSeasonStartTime();
-                if (elapsed < 2000000L) {
-                    long remaining = 2000000L - elapsed;
-                    border.interpolateSize(border.getSize(), 42000.0, remaining, net.minecraft.util.Util.getMeasuringTimeMs());
-                } else {
-                    border.setSize(42000.0);
-                }
+                border.setSize(16000.0);
             }
         }
     }
