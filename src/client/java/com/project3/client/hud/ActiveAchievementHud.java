@@ -169,33 +169,14 @@ public class ActiveAchievementHud {
 
             int height = 32 + titleLines.size() * 10 + descLines.size() * 10;
 
-            // Text rendering removed per request
-            int tabX = x + 8;
-            int tabHeight = 10;
-            int tabY = y - tabHeight;
-            int tx = tabX + 6;
-            
-            // Still render the little top tab bar for aesthetic (without text)
-            int tabWidth = 20;
-
-            context.fill(tabX, tabY, tabX + tabWidth, tabY + tabHeight, 0xD0101010);
-            context.fill(tabX, tabY, tabX + 1, tabY + tabHeight, 0xFF000000);
-            context.fill(tabX, tabY, tabX + tabWidth, tabY + 1, 0xFF000000);
-            context.fill(tabX + tabWidth - 1, tabY, tabX + tabWidth, tabY + tabHeight, 0xFF000000);
-            context.fill(tabX + 1, tabY + 1, tabX + 2, tabY + tabHeight, 0xFF8B8B8B);
-            context.fill(tabX + 1, tabY + 1, tabX + tabWidth - 1, tabY + 2, 0xFF8B8B8B);
-            context.fill(tabX + tabWidth - 2, tabY + 1, tabX + tabWidth - 1, tabY + tabHeight, 0xFF373737);
-
             context.fill(x, y, x + width, y + height, 0xD0101010);
 
-            context.fill(x, y, tabX, y + 1, 0xFF000000);
-            context.fill(tabX + tabWidth, y, x + width, y + 1, 0xFF000000);
+            context.fill(x, y, x + width, y + 1, 0xFF000000);
             context.fill(x, y + 1, x + 1, y + height, 0xFF000000);
             context.fill(x + width - 1, y + 1, x + width, y + height, 0xFF000000);
             context.fill(x, y + height - 1, x + width, y + height, 0xFF000000);
 
-            context.fill(x + 1, y + 1, tabX + 1, y + 2, 0xFF8B8B8B);
-            context.fill(tabX + tabWidth - 1, y + 1, x + width - 1, y + 2, 0xFF8B8B8B);
+            context.fill(x + 1, y + 1, x + width - 1, y + 2, 0xFF8B8B8B);
             context.fill(x + 1, y + 2, x + 2, y + height - 1, 0xFF8B8B8B);
 
             context.fill(x + 1, y + height - 2, x + width - 1, y + height - 1, 0xFF373737);
