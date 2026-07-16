@@ -61,7 +61,7 @@ public final class CalibrationManager {
                     border.interpolateSize(border.getSize(), 42000.0, 2000000L, net.minecraft.util.Util.getMeasuringTimeMs());
                     
                     // Disable vanilla advancement announcements
-                    net.minecraft.world.rule.GameRules.ANNOUNCE_ADVANCEMENTS.set(overworld.getGameRules(), false, server);
+                    overworld.getGameRules().getRule(net.minecraft.world.rule.GameRules.ANNOUNCE_ADVANCEMENTS).set(false, server);
                 }
             }
         }
