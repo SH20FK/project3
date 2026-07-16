@@ -24,9 +24,9 @@ import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryEntry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.gen.feature.DefaultFeatureConfig;
 import net.minecraft.world.gen.feature.Feature;
@@ -129,10 +129,12 @@ public final class ModRegistries {
                 FabricBlockEntityTypeBuilder.create(PhantomBlockEntity::new, PHANTOM_BLOCK).build());
 
         // Status Effects
-        Registry.register(Registries.STATUS_EFFECT, Identifier.of(MODID, "happiness_effect"), new HappinessEffect());
-        Registry.register(Registries.STATUS_EFFECT, Identifier.of(MODID, "gloom_effect"), new GloomEffect());
-        HAPPINESS_EFFECT = Registries.STATUS_EFFECT.entryOf(RegistryKey.of(RegistryKeys.STATUS_EFFECT, Identifier.of(MODID, "happiness_effect")));
-        GLOOM_EFFECT = Registries.STATUS_EFFECT.entryOf(RegistryKey.of(RegistryKeys.STATUS_EFFECT, Identifier.of(MODID, "gloom_effect")));
+        Identifier happinessId = Identifier.of(MODID, "happiness_effect");
+        Identifier gloomId = Identifier.of(MODID, "gloom_effect");
+        Registry.register(Registries.STATUS_EFFECT, happinessId, new HappinessEffect());
+        Registry.register(Registries.STATUS_EFFECT, gloomId, new GloomEffect());
+        HAPPINESS_EFFECT = Registries.STATUS_EFFECT.getEntry(happinessId).orElseThrow();
+        GLOOM_EFFECT = Registries.STATUS_EFFECT.getEntry(gloomId).orElseThrow();
 
         // World-gen Feature
         Registry.register(Registries.FEATURE, Identifier.of(MODID, "producer_block"), PRODUCER_BLOCK_FEATURE);
