@@ -13,8 +13,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(WorldRenderer.class)
 public class MixinWorldRendererSky {
 
-    @Inject(method = "renderSky(Lorg/joml/Matrix4f;Lnet/minecraft/client/render/Fog;FLnet/minecraft/client/render/Camera;ZLjava/lang/Runnable;)V", at = @At("HEAD"), cancellable = true)
-    private void onRenderSky(org.joml.Matrix4f matrix4f, net.minecraft.client.render.Fog fog, float f, net.minecraft.client.render.Camera camera, boolean bl, Runnable runnable, CallbackInfo ci) {
+    @Inject(method = "renderSky(Lnet/minecraft/client/render/FrameGraphBuilder;Lnet/minecraft/client/render/Camera;Lcom/mojang/blaze3d/buffers/GpuBufferSlice;)V", at = @At("HEAD"), cancellable = true)
+    private void onRenderSky(net.minecraft.client.render.FrameGraphBuilder frameGraphBuilder, net.minecraft.client.render.Camera camera, com.mojang.blaze3d.buffers.GpuBufferSlice gpuBufferSlice, CallbackInfo ci) {
         if (GloomVoidClientHandler.isInGloomVoid) {
             // Cancel vanilla sky rendering (Sun, Moon, Stars, Colors)
             // The background clear color is already dark from MixinFogRenderer, 
