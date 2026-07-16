@@ -7,7 +7,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.stat.Stats;
 import net.minecraft.util.Hand;
-import net.minecraft.util.ItemActionResult;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
@@ -22,7 +22,7 @@ public class MixinJukeboxBlock {
         method = "onUseWithItem",
         at = @At("HEAD")
     )
-    private void onInsertDisc(ItemStack stack, net.minecraft.block.BlockState state, World world, BlockPos pos, PlayerEntity user, Hand hand, net.minecraft.util.hit.BlockHitResult hit, CallbackInfoReturnable<ItemActionResult> cir) {
+    private void onInsertDisc(ItemStack stack, net.minecraft.block.BlockState state, World world, BlockPos pos, PlayerEntity user, Hand hand, net.minecraft.util.hit.BlockHitResult hit, CallbackInfoReturnable<ActionResult> cir) {
         if (user instanceof ServerPlayerEntity serverPlayer) {
             if (!state.get(JukeboxBlock.HAS_RECORD) && stack.contains(net.minecraft.component.DataComponentTypes.JUKEBOX_PLAYABLE)) {
                 serverPlayer.incrementStat(Stats.CUSTOM.getOrCreateStat(Project3Mod.PLAY_MUSIC_DISC_STAT_ID));
