@@ -24,7 +24,7 @@ public class MixinJukeboxBlock {
             target = "Lnet/minecraft/block/JukeboxBlock;setRecord(Lnet/minecraft/world/WorldAccess;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;Lnet/minecraft/item/ItemStack;)V"
         )
     )
-    private void onInsertDisc(ItemStack stack, net.minecraft.block.BlockState state, World world, BlockPos pos, PlayerEntity user, Hand hand, net.minecraft.util.math.BlockHitResult hit, CallbackInfoReturnable<net.minecraft.util.ActionResult> cir) {
+    private void onInsertDisc(ItemStack stack, net.minecraft.block.BlockState state, World world, BlockPos pos, PlayerEntity user, Hand hand, net.minecraft.util.hit.BlockHitResult hit, CallbackInfoReturnable<net.minecraft.util.ActionResult> cir) {
         if (user instanceof ServerPlayerEntity serverPlayer) {
             serverPlayer.incrementStat(Stats.CUSTOM.getOrCreateStat(Project3Mod.PLAY_MUSIC_DISC_STAT_ID));
         }
