@@ -220,11 +220,14 @@ public class NetherCorruptionEvent {
         if (!restorePending) return;
 
         // Resolve eventWorld from key if null (after server restart)
-        if (eventWorld == null && eventWorldKey != null && player.getServer() != null) {
+        if (eventWorld == null && eventWorldKey != null) {
             try {
                 net.minecraft.util.Identifier worldId = net.minecraft.util.Identifier.of(eventWorldKey);
                 RegistryKey<net.minecraft.world.World> worldKey = RegistryKey.of(RegistryKeys.WORLD, worldId);
-                eventWorld = player.getServer().getWorld(worldKey);
+                MinecraftServer server = ((ServerWorld) player.getEntityWorld()).getServer();
+                if (server != null) {
+                    eventWorld = server.getWorld(worldKey);
+                }
             } catch (Exception e) {
                 Project3Mod.LOGGER.error("Failed to resolve nether corruption event world: {}", eventWorldKey, e);
             }
