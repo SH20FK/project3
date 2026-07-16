@@ -84,6 +84,35 @@ public class NetherCorruptionEvent {
     /** Ожидает ли восстановление */
     public static boolean restorePending = false;
 
+    /**
+     * Принудительное восстановление всех блоков по команде.
+     * Не зависит от restorePending — просто берёт savedBlocks и восстанавливает.
+     */
+    public static void restoreAll(MinecraftServer server) {
+        if (savedBlocks.isEmpty()) {
+            Project3Mod.LOGGER.warn("Nether corruption restoreAll called but savedBlocks is empty");
+            return;
+        }
+
+        ServerWorld world = eventWorld;
+        if (world == null && eventWorldKey != null) {
+            try {
+                net.minecraft.util.Identifier worldId = net.minecraft.util.Identifier.of(eventWorldKey);
+                RegistryKey<net.minecraft.world.World> worldKey = RegistryKey.of(RegistryKeys.WORLD, worldId);
+                world = server.getWorld(worldKey);
+            } catch (Exception e) {
+                Project3Mod.LOGGER.error("Failed to resolve nether corruption world for restoreAll", e);
+            }
+        }
+
+        if (world == null) {
+            Project3Mod.LOGGER.warn("Nether corruption restoreAll: eventWorld is null, cannot restore");
+            return;
+        }
+
+        restoreBlocks(world);
+    }
+
     // ─── Триггер события ────────────────────────────────────────────────────
 
     /**

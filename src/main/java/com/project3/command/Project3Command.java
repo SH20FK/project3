@@ -124,6 +124,13 @@ public class Project3Command {
                                 () -> Text.literal("§cNether Corruption Event запущен").formatted(Formatting.RED), false);
                             return 1;
                         })
+                        .then(CommandManager.literal("restore")
+                                .executes(ctx -> {
+                                    com.project3.event.NetherCorruptionEvent.restoreAll(ctx.getSource().getServer());
+                                    ctx.getSource().sendFeedback(
+                                        () -> Text.literal("§aВосстановление блоков после Nether Corruption запущено").formatted(Formatting.GREEN), false);
+                                    return 1;
+                                }))
                 )
                 .then(buildAchievementCommand())
         );
