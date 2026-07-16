@@ -109,9 +109,6 @@ public final class PlayerEventHandler {
         if (happiness > 0) {
             state.setHappinessTicksLeft(player.getUuid(), happiness - 1);
             player.addStatusEffect(new StatusEffectInstance(ModRegistries.HAPPINESS_EFFECT, 40, 0, true, false, true));
-            player.addStatusEffect(new StatusEffectInstance(StatusEffects.LUCK, 40, 0, true, false, true));
-            player.addStatusEffect(new StatusEffectInstance(StatusEffects.SPEED, 40, 0, true, false, true));
-            player.addStatusEffect(new StatusEffectInstance(StatusEffects.STRENGTH, 40, 0, true, false, true));
             state.setGloomPermanent(player.getUuid(), false);
             state.setGloomTicksLeft(player.getUuid(), 0L);
             if (state.getGloomDepthTicks(player.getUuid()) > 0) {
@@ -166,9 +163,6 @@ public final class PlayerEventHandler {
             state.setGloomTicksLeft(player.getUuid(), 0L);
             state.addGloomDepthTicks(player.getUuid(), 1L);
             player.addStatusEffect(new StatusEffectInstance(ModRegistries.GLOOM_EFFECT, 40, 0, true, false, true));
-            player.addStatusEffect(new StatusEffectInstance(StatusEffects.UNLUCK, 40, 0, true, false, true));
-            player.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 40, 0, true, false, true));
-            player.addStatusEffect(new StatusEffectInstance(StatusEffects.WEAKNESS, 40, 0, true, false, true));
         }
 
         if (state.isUnnamedEffectActive(player.getUuid())) {
