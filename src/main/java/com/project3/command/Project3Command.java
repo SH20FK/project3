@@ -116,7 +116,7 @@ public class Project3Command {
                         .then(CommandManager.literal("end")
                                 .executes(ctx -> executeLockEnd(ctx.getSource()))))
                 .then(CommandManager.literal("nethercorruption")
-                        .requires(source -> source.hasPermissionLevel(2))
+                        .requires(CommandManager.requirePermissionLevel(2))
                         .executes(ctx -> {
                             com.project3.event.NetherCorruptionEvent.trigger(ctx.getSource().getServer());
                             ctx.getSource().sendFeedback(
@@ -370,7 +370,7 @@ public class Project3Command {
     private static int executeGiveEffect(ServerCommandSource source, ServerPlayerEntity player) {
         Project3State state = Project3State.getOrCreate(source.getServer());
         state.setUnnamedEffectActive(player.getUuid(), true);
-        com.project3.Project3Mod.syncPlayerState(player, state);
+        com.project3.player.PlayerStateManager.syncPlayerState(player, state);
 
         source.sendFeedback(() -> Text.literal("Безымянный эффект выдан игроку " + player.getName().getString()).formatted(Formatting.GREEN), true);
         player.sendMessage(Text.literal("§cВы почувствовали странное присутствие... На вас наложен безымянный эффект."), false);

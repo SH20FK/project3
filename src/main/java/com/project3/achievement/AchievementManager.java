@@ -266,7 +266,7 @@ public class AchievementManager {
         // Custom chat message
         net.minecraft.text.MutableText msg = net.minecraft.text.Text.literal("Выполнена задача: " + achievement.getTitle())
             .formatted(net.minecraft.util.Formatting.GREEN)
-            .styled(style -> style.withHoverEvent(net.minecraft.text.HoverEvent.showText(
+            .styled(style -> style.withHoverEvent(new net.minecraft.text.HoverEvent.ShowText(
                 net.minecraft.text.Text.literal(achievement.getDescription()).formatted(net.minecraft.util.Formatting.GRAY)
             )));
         ((net.minecraft.server.world.ServerWorld)player.getEntityWorld()).getServer().getPlayerManager().broadcast(msg, false);

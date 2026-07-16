@@ -2,6 +2,7 @@ package com.project3.mixin;
 
 import com.project3.Project3Mod;
 import com.project3.state.Project3State;
+import com.project3.world.CalibrationManager;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -58,7 +59,7 @@ public class MixinServerPlayerEntity {
         // 3. Block access to Nether/End if they are locked/unstarted
         if (destWorld.getRegistryKey() == World.NETHER) {
             Project3Mod.Act act = Project3Mod.getAct(state);
-            boolean locked = !state.isSeasonStarted() || Project3Mod.calibrationTicksLeft > 0 || (act == Project3Mod.Act.I && !state.isNetherForceUnlocked());
+            boolean locked = !state.isSeasonStarted() || CalibrationManager.calibrationTicksLeft > 0 || (act == Project3Mod.Act.I && !state.isNetherForceUnlocked());
             if (locked && !player.isCreative()) {
                 player.sendMessage(Text.literal("§c[Система] Доступ в Незер заблокирован."), false);
                 cir.setReturnValue(player);
@@ -67,7 +68,7 @@ public class MixinServerPlayerEntity {
         }
         else if (destWorld.getRegistryKey() == World.END) {
             Project3Mod.Act act = Project3Mod.getAct(state);
-            boolean locked = !state.isSeasonStarted() || Project3Mod.calibrationTicksLeft > 0 || ((act == Project3Mod.Act.I || act == Project3Mod.Act.II || act == Project3Mod.Act.III) && !state.isEndForceUnlocked());
+            boolean locked = !state.isSeasonStarted() || CalibrationManager.calibrationTicksLeft > 0 || ((act == Project3Mod.Act.I || act == Project3Mod.Act.II || act == Project3Mod.Act.III) && !state.isEndForceUnlocked());
             if (locked && !player.isCreative()) {
                 player.sendMessage(Text.literal("§c[Система] Доступ в Энд заблокирован."), false);
                 cir.setReturnValue(player);
