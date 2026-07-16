@@ -58,7 +58,7 @@ public final class CalibrationManager {
                 ServerWorld overworld = server.getOverworld();
                 if (overworld != null) {
                     net.minecraft.world.border.WorldBorder border = overworld.getWorldBorder();
-                    border.interpolateSize(border.getSize(), 16000.0, 150000L, net.minecraft.util.Util.getMeasuringTimeMs());
+                    border.interpolateSize(border.getSize(), 16000.0, 30000L, net.minecraft.util.Util.getMeasuringTimeMs());
                     
                     // Disable vanilla advancement announcements
                     overworld.getGameRules().setValue(net.minecraft.world.rule.GameRules.ANNOUNCE_ADVANCEMENTS, false, server);

@@ -8,8 +8,7 @@
     "MixinAbstractFurnaceBlockEntity",
     "MixinMerchantResultSlot",
     "MixinServerPlayerEntity",
-    "MixinPlayerListS2CPacketEntry",
-    "MixinJukeboxBlockEntity"
+    "MixinPlayerListS2CPacketEntry"
   ],
   "injectors": {
     "defaultRequire": 1

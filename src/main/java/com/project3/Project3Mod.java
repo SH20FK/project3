@@ -285,6 +285,13 @@ public class Project3Mod implements ModInitializer {
                 }
             }
 
+            // Jukebox music disc detection for Beethoven achievement
+            if (clickedBlock instanceof net.minecraft.block.JukeboxBlock
+                    && !heldStack.isEmpty()
+                    && heldStack.contains(net.minecraft.component.DataComponentTypes.JUKEBOX_PLAYABLE)) {
+                serverPlayer.incrementStat(net.minecraft.stat.Stats.CUSTOM.getOrCreateStat(PLAY_MUSIC_DISC_STAT_ID));
+            }
+
             return ActionResult.PASS;
         });
         
