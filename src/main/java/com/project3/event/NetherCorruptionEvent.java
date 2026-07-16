@@ -2,10 +2,11 @@ package com.project3.event;
 
 import com.project3.Project3Mod;
 import com.project3.state.Project3State;
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtHelper;
+import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.RegistryWrapper;
@@ -13,6 +14,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.Heightmap;
@@ -306,11 +308,13 @@ public class NetherCorruptionEvent {
         savedPositions.remove(uuid);
 
         // Если все игроки вернулись — чистим состояние
+        // НЕ очищаем savedBlocks — восстановление идёт scheduled-задачами,
+        // которые ещё могут не выполниться. Очистка произойдёт после
+        // завершения restoreBlocks (см. retryRemainingBlocks или следующий trigger).
+        // Не сбрасываем restorePending — данные сохраняются в NBT для защиты
+        // от потери при рестарте сервера до завершения восстановления.
         if (savedPositions.isEmpty()) {
-            restorePending = false;
-            savedBlocks.clear();
             eventWorld = null;
-            eventWorldKey = null;
         }
     }
 
@@ -351,7 +355,13 @@ public class NetherCorruptionEvent {
     }
 
     private static void retryRemainingBlocks(ServerWorld world, List<Map.Entry<BlockPos, BlockState>> remaining) {
-        if (remaining.isEmpty()) return;
+        if (remaining.isEmpty()) {
+            // Все блоки восстановлены — можно полностью очистить состояние
+            restorePending = false;
+            savedBlocks.clear();
+            eventWorldKey = null;
+            return;
+        }
 
         List<Map.Entry<BlockPos, BlockState>> stillPending = new ArrayList<>();
         for (Map.Entry<BlockPos, BlockState> entry : remaining) {
@@ -372,6 +382,10 @@ public class NetherCorruptionEvent {
 
         if (!stillPending.isEmpty()) {
             Project3Mod.schedule(40, () -> retryRemainingBlocks(world, remaining));
+        } else {
+            restorePending = false;
+            savedBlocks.clear();
+            eventWorldKey = null;
         }
     }
 
@@ -389,7 +403,7 @@ public class NetherCorruptionEvent {
             eventNbt.putString("eventWorldKey", eventWorldKey);
         }
 
-        // Сохраняем блоки
+        // Сохраняем блоки (registry-independent: store block ID as string)
         NbtCompound blocksNbt = new NbtCompound();
         int i = 0;
         for (Map.Entry<BlockPos, BlockState> entry : savedBlocks.entrySet()) {
@@ -398,7 +412,10 @@ public class NetherCorruptionEvent {
             blockEntry.putInt("x", pos.getX());
             blockEntry.putInt("y", pos.getY());
             blockEntry.putInt("z", pos.getZ());
-            blockEntry.put("state", NbtHelper.fromBlockState(entry.getValue()));
+            Identifier blockId = Registries.BLOCK.getId(entry.getValue().getBlock());
+            if (blockId != null) {
+                blockEntry.putString("block_id", blockId.toString());
+            }
             blocksNbt.put(String.valueOf(i++), blockEntry);
         }
         blocksNbt.putInt("count", i);
@@ -430,7 +447,7 @@ public class NetherCorruptionEvent {
         restorePending = true;
         eventWorldKey = eventNbt.getString("eventWorldKey").orElse(null);
 
-        // Читаем блоки
+        // Читаем блоки (registry-independent: reconstruct from block_id string)
         NbtCompound blocksNbt = eventNbt.getCompound("blocks").orElseGet(NbtCompound::new);
         int count = blocksNbt.getInt("count").orElse(0);
         for (int i = 0; i < count; i++) {
@@ -440,11 +457,13 @@ public class NetherCorruptionEvent {
                 blockEntry.getInt("y").orElse(0),
                 blockEntry.getInt("z").orElse(0)
             );
-            BlockState state = NbtHelper.toBlockState(
-                registries.getOrThrow(net.minecraft.registry.RegistryKeys.BLOCK),
-                blockEntry.getCompound("state").orElseGet(NbtCompound::new)
-            );
-            savedBlocks.put(pos, state);
+            String blockIdStr = blockEntry.getString("block_id").orElse("");
+            if (!blockIdStr.isEmpty()) {
+                Block block = Registries.BLOCK.get(Identifier.of(blockIdStr));
+                if (block != null) {
+                    savedBlocks.put(pos, block.getDefaultState());
+                }
+            }
         }
 
         // Читаем позиции
