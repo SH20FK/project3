@@ -191,7 +191,7 @@ public class NetherCorruptionEvent {
 
         // Сохраняем позиции всех игроков ДО дисконнекта
         for (ServerPlayerEntity player : players) {
-            savedPositions.put(player.getUuid(), player.getPos());
+            savedPositions.put(player.getUuid(), player.getEntityPos());
         }
 
         // Отключаем всех с fake crash screen
@@ -326,38 +326,38 @@ public class NetherCorruptionEvent {
     public static void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
         if (!nbt.contains("netherCorruption")) return;
 
-        NbtCompound eventNbt = nbt.getCompound("netherCorruption");
-        if (!eventNbt.getBoolean("restorePending")) return;
+        NbtCompound eventNbt = nbt.getCompound("netherCorruption").orElseGet(NbtCompound::new);
+        if (!eventNbt.getBoolean("restorePending").orElse(false)) return;
 
         restorePending = true;
 
         // Читаем блоки
-        NbtCompound blocksNbt = eventNbt.getCompound("blocks");
-        int count = blocksNbt.getInt("count");
+        NbtCompound blocksNbt = eventNbt.getCompound("blocks").orElseGet(NbtCompound::new);
+        int count = blocksNbt.getInt("count").orElse(0);
         for (int i = 0; i < count; i++) {
-            NbtCompound blockEntry = blocksNbt.getCompound(String.valueOf(i));
+            NbtCompound blockEntry = blocksNbt.getCompound(String.valueOf(i)).orElseGet(NbtCompound::new);
             BlockPos pos = new BlockPos(
-                blockEntry.getInt("x"),
-                blockEntry.getInt("y"),
-                blockEntry.getInt("z")
+                blockEntry.getInt("x").orElse(0),
+                blockEntry.getInt("y").orElse(0),
+                blockEntry.getInt("z").orElse(0)
             );
             BlockState state = NbtHelper.toBlockState(
                 registries.getOrThrow(net.minecraft.registry.RegistryKeys.BLOCK),
-                blockEntry.getCompound("state")
+                blockEntry.getCompound("state").orElseGet(NbtCompound::new)
             );
             savedBlocks.put(pos, state);
         }
 
         // Читаем позиции
-        NbtCompound posNbt = eventNbt.getCompound("positions");
+        NbtCompound posNbt = eventNbt.getCompound("positions").orElseGet(NbtCompound::new);
         for (String key : posNbt.getKeys()) {
-            NbtCompound playerPos = posNbt.getCompound(key);
+            NbtCompound playerPos = posNbt.getCompound(key).orElseGet(NbtCompound::new);
             savedPositions.put(
                 UUID.fromString(key),
                 new Vec3d(
-                    playerPos.getDouble("x"),
-                    playerPos.getDouble("y"),
-                    playerPos.getDouble("z")
+                    playerPos.getDouble("x").orElse(0.0),
+                    playerPos.getDouble("y").orElse(0.0),
+                    playerPos.getDouble("z").orElse(0.0)
                 )
             );
         }

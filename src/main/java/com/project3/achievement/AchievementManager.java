@@ -266,11 +266,10 @@ public class AchievementManager {
         // Custom chat message
         net.minecraft.text.MutableText msg = net.minecraft.text.Text.literal("Выполнена задача: " + achievement.getTitle())
             .formatted(net.minecraft.util.Formatting.GREEN)
-            .styled(style -> style.withHoverEvent(new net.minecraft.text.HoverEvent(
-                net.minecraft.text.HoverEvent.Action.SHOW_TEXT, 
+            .styled(style -> style.withHoverEvent(net.minecraft.text.HoverEvent.showText(
                 net.minecraft.text.Text.literal(achievement.getDescription()).formatted(net.minecraft.util.Formatting.GRAY)
             )));
-        player.getServer().getPlayerManager().broadcast(msg, false);
+        ((net.minecraft.server.world.ServerWorld)player.getEntityWorld()).getServer().getPlayerManager().broadcast(msg, false);
 
         ItemStack cookies = new ItemStack(Items.COOKIE, 10);
         player.getInventory().offerOrDrop(cookies);

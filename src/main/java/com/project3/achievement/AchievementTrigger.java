@@ -349,7 +349,7 @@ public class AchievementTrigger {
             case "suicide" -> {
                 int deaths;
                 try {
-                    deaths = player.getStatHandler().getStat(Stats.DEATHS);
+                    deaths = player.getStatHandler().getStat(Stats.CUSTOM.getOrCreateStat(Stats.DEATHS));
                 } catch (Exception e) {
                     deaths = 0;
                 }
