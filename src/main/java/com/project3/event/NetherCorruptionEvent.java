@@ -6,6 +6,8 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtHelper;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -76,6 +78,9 @@ public class NetherCorruptionEvent {
     /** Мир в котором произошло событие */
     private static ServerWorld eventWorld = null;
 
+    /** Регистрационный ключ мира для восстановления после рестарта */
+    private static String eventWorldKey = null;
+
     /** Ожидает ли восстановление */
     public static boolean restorePending = false;
 
@@ -92,6 +97,7 @@ public class NetherCorruptionEvent {
         // Определяем мир — берём из первого игрока
         ServerWorld world = (ServerWorld) players.get(0).getEntityWorld();
         eventWorld = world;
+        eventWorldKey = world.getRegistryKey().getValue().toString();
         savedBlocks.clear();
         savedPositions.clear();
 
@@ -213,12 +219,32 @@ public class NetherCorruptionEvent {
     public static void onPlayerJoin(ServerPlayerEntity player) {
         if (!restorePending) return;
 
+        // Resolve eventWorld from key if null (after server restart)
+        if (eventWorld == null && eventWorldKey != null && player.getServer() != null) {
+            try {
+                net.minecraft.util.Identifier worldId = net.minecraft.util.Identifier.of(eventWorldKey);
+                RegistryKey<net.minecraft.world.World> worldKey = RegistryKey.of(RegistryKeys.WORLD, worldId);
+                eventWorld = player.getServer().getWorld(worldKey);
+            } catch (Exception e) {
+                Project3Mod.LOGGER.error("Failed to resolve nether corruption event world: {}", eventWorldKey, e);
+            }
+        }
+
+        if (eventWorld == null) {
+            Project3Mod.LOGGER.warn("Nether corruption restore pending but eventWorld is null");
+            restorePending = false;
+            savedBlocks.clear();
+            savedPositions.clear();
+            eventWorldKey = null;
+            return;
+        }
+
         UUID uuid = player.getUuid();
         Vec3d savedPos = savedPositions.get(uuid);
 
         // Если это первый игрок кто зашёл — восстанавливаем блоки
         // (делаем это один раз, не для каждого игрока)
-        if (!savedBlocks.isEmpty() && eventWorld != null) {
+        if (!savedBlocks.isEmpty()) {
             restoreBlocks(eventWorld);
         }
 
@@ -252,6 +278,7 @@ public class NetherCorruptionEvent {
             restorePending = false;
             savedBlocks.clear();
             eventWorld = null;
+            eventWorldKey = null;
         }
     }
 
@@ -267,17 +294,23 @@ public class NetherCorruptionEvent {
             final int from = i * batchSize;
             final int to = Math.min(from + batchSize, entries.size());
             final List<Map.Entry<BlockPos, BlockState>> batch = entries.subList(from, to);
-            final int delayTick = i; // каждая пачка через тик
+            final int delayTick = i * 2; // каждая пачка через 2 тика для загрузки чанков
 
             Project3Mod.schedule(delayTick, () -> {
                 for (Map.Entry<BlockPos, BlockState> entry : batch) {
-                    world.setBlockState(entry.getKey(), entry.getValue(),
-                        net.minecraft.block.Block.NOTIFY_LISTENERS | net.minecraft.block.Block.FORCE_STATE);
+                    BlockPos pos = entry.getKey();
+                    // Ensure chunk is loaded before setting block
+                    if (world.isChunkLoaded(pos.getX() >> 4, pos.getZ() >> 4)) {
+                        world.setBlockState(pos, entry.getValue(),
+                            net.minecraft.block.Block.NOTIFY_LISTENERS | net.minecraft.block.Block.FORCE_STATE);
+                    } else {
+                        Project3Mod.LOGGER.warn("Chunk not loaded at {} during nether corruption restore", pos);
+                    }
                 }
             });
         }
 
-        savedBlocks.clear();
+        // Don't clear here - let onPlayerJoin handle cleanup after all batches complete
     }
 
     // ─── NBT сохранение (для персистентности между рестартами) ──────────────
@@ -290,6 +323,9 @@ public class NetherCorruptionEvent {
 
         NbtCompound eventNbt = new NbtCompound();
         eventNbt.putBoolean("restorePending", true);
+        if (eventWorldKey != null) {
+            eventNbt.putString("eventWorldKey", eventWorldKey);
+        }
 
         // Сохраняем блоки
         NbtCompound blocksNbt = new NbtCompound();
@@ -330,6 +366,7 @@ public class NetherCorruptionEvent {
         if (!eventNbt.getBoolean("restorePending").orElse(false)) return;
 
         restorePending = true;
+        eventWorldKey = eventNbt.getString("eventWorldKey").orElse(null);
 
         // Читаем блоки
         NbtCompound blocksNbt = eventNbt.getCompound("blocks").orElseGet(NbtCompound::new);

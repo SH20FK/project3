@@ -5,6 +5,7 @@ import com.project3.dread.DreadManager;
 import com.project3.dread.ShadowMerchant;
 import com.project3.network.CameraRotatePayload;
 import com.project3.network.RemovePhantomPayload;
+import com.project3.registry.ModRegistries;
 import com.project3.state.Project3State;
 import com.project3.world.CalibrationManager;
 import com.project3.world.GloomVoidTickHandler;
@@ -107,9 +108,7 @@ public final class PlayerEventHandler {
         long happiness = state.getHappinessTicksLeft(player.getUuid());
         if (happiness > 0) {
             state.setHappinessTicksLeft(player.getUuid(), happiness - 1);
-            player.addStatusEffect(new StatusEffectInstance(StatusEffects.LUCK, 40, 0, true, false, true));
-            player.addStatusEffect(new StatusEffectInstance(StatusEffects.SPEED, 40, 0, true, false, true));
-            player.addStatusEffect(new StatusEffectInstance(StatusEffects.STRENGTH, 40, 0, true, false, true));
+            player.addStatusEffect(new StatusEffectInstance(ModRegistries.HAPPINESS_EFFECT, 40, 0, true, false, true));
             state.setGloomPermanent(player.getUuid(), false);
             state.setGloomTicksLeft(player.getUuid(), 0L);
             if (state.getGloomDepthTicks(player.getUuid()) > 0) {
@@ -131,16 +130,6 @@ public final class PlayerEventHandler {
                         double speed = 0.2;
                         orb.setVelocity(orb.getVelocity().add(dx / dist * speed, dy / dist * speed, dz / dist * speed));
                     }
-                }
-            }
-
-            if (server.getTicks() % 10 == 0) {
-                Box mobBox = player.getBoundingBox().expand(10.0);
-                var passives = ((ServerWorld) player.getEntityWorld()).getEntitiesByClass(
-                        net.minecraft.entity.passive.PassiveEntity.class, mobBox, net.minecraft.entity.LivingEntity::isAlive
-                );
-                for (var passive : passives) {
-                    passive.getNavigation().startMovingTo(player, 1.25);
                 }
             }
 
@@ -173,9 +162,7 @@ public final class PlayerEventHandler {
             state.setGloomPermanent(player.getUuid(), true);
             state.setGloomTicksLeft(player.getUuid(), 0L);
             state.addGloomDepthTicks(player.getUuid(), 1L);
-            player.addStatusEffect(new StatusEffectInstance(StatusEffects.UNLUCK, 40, 0, true, false, true));
-            player.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 40, 0, true, false, true));
-            player.addStatusEffect(new StatusEffectInstance(StatusEffects.WEAKNESS, 40, 0, true, false, true));
+            player.addStatusEffect(new StatusEffectInstance(ModRegistries.GLOOM_EFFECT, 40, 0, true, false, true));
         }
 
         if (state.isUnnamedEffectActive(player.getUuid())) {

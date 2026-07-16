@@ -6,6 +6,8 @@ import com.project3.block.ProducerBlock;
 import com.project3.block.VoidGlassBlock;
 import com.project3.block.entity.PhantomBlockEntity;
 import com.project3.block.entity.ProducerBlockEntity;
+import com.project3.effect.HappinessEffect;
+import com.project3.effect.GloomEffect;
 import com.project3.item.AIChronometerItem;
 import com.project3.item.AIDumpAnalyzerItem;
 import com.project3.item.CalmingAmuletItem;
@@ -17,6 +19,7 @@ import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.MapColor;
 import net.minecraft.block.entity.BlockEntityType;
+import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.registry.Registries;
@@ -89,6 +92,11 @@ public final class ModRegistries {
                     .maxCount(1)
                     .maxDamage(500));
 
+    // ─── Status Effects ──────────────────────────────────────────────────────
+
+    public static final StatusEffect HAPPINESS_EFFECT = new HappinessEffect();
+    public static final StatusEffect GLOOM_EFFECT = new GloomEffect();
+
     // ─── World-gen Features ───────────────────────────────────────────────────
 
     public static final Feature<DefaultFeatureConfig> PRODUCER_BLOCK_FEATURE =
@@ -118,6 +126,10 @@ public final class ModRegistries {
                 Registries.BLOCK_ENTITY_TYPE,
                 Identifier.of(MODID, "phantom_block"),
                 FabricBlockEntityTypeBuilder.create(PhantomBlockEntity::new, PHANTOM_BLOCK).build());
+
+        // Status Effects
+        Registry.register(Registries.STATUS_EFFECT, Identifier.of(MODID, "happiness_effect"), HAPPINESS_EFFECT);
+        Registry.register(Registries.STATUS_EFFECT, Identifier.of(MODID, "gloom_effect"), GLOOM_EFFECT);
 
         // World-gen Feature
         Registry.register(Registries.FEATURE, Identifier.of(MODID, "producer_block"), PRODUCER_BLOCK_FEATURE);

@@ -14,6 +14,7 @@ import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
+import com.project3.registry.ModRegistries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -390,7 +391,7 @@ public class Project3Command {
     private static int executeHappinessClear(ServerCommandSource source, ServerPlayerEntity player) {
         Project3State state = Project3State.getOrCreate(source.getServer());
         state.setHappinessTicksLeft(player.getUuid(), 0L);
-        player.removeStatusEffect(StatusEffects.LUCK);
+        player.removeStatusEffect(ModRegistries.HAPPINESS_EFFECT);
         com.project3.player.PlayerStateManager.syncPlayerState(player, state);
         source.sendFeedback(() -> Text.literal("Эффект счастья снят с игрока " + player.getName().getString()).formatted(Formatting.GREEN), true);
         player.sendMessage(Text.literal("§eОщущение счастья угасло..."), false);
@@ -411,7 +412,7 @@ public class Project3Command {
         Project3State state = Project3State.getOrCreate(source.getServer());
         state.setGloomTicksLeft(player.getUuid(), 0L);
         state.setGloomPermanent(player.getUuid(), false);
-        player.removeStatusEffect(StatusEffects.UNLUCK);
+        player.removeStatusEffect(ModRegistries.GLOOM_EFFECT);
         com.project3.player.PlayerStateManager.syncPlayerState(player, state);
         source.sendFeedback(() -> Text.literal("Эффект уныния снят с игрока " + player.getName().getString()).formatted(Formatting.GREEN), true);
         player.sendMessage(Text.literal("§aУныние прошло. Вы чувствуете облегчение."), false);

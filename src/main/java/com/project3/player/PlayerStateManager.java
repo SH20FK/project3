@@ -3,9 +3,9 @@ package com.project3.player;
 import com.project3.Project3Mod;
 import com.project3.network.ParanoiaPayload;
 import com.project3.network.PlayerStateSyncPayload;
+import com.project3.registry.ModRegistries;
 import com.project3.state.Project3State;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 
@@ -65,9 +65,7 @@ public final class PlayerStateManager {
         state.setGloomPermanent(player.getUuid(), false);
         state.setGloomTicksLeft(player.getUuid(), 0L);
         state.setGloomDepthTicks(player.getUuid(), 0L);
-        player.removeStatusEffect(StatusEffects.UNLUCK);
-        player.removeStatusEffect(StatusEffects.SLOWNESS);
-        player.removeStatusEffect(StatusEffects.WEAKNESS);
+        player.removeStatusEffect(ModRegistries.GLOOM_EFFECT);
         
         syncPlayerState(player, state);
     }
@@ -76,9 +74,7 @@ public final class PlayerStateManager {
         state.setHappinessTicksLeft(player.getUuid(), 0L);
         state.setGloomTicksLeft(player.getUuid(), ticks);
         state.setGloomPermanent(player.getUuid(), false);
-        player.removeStatusEffect(StatusEffects.LUCK);
-        player.removeStatusEffect(StatusEffects.SPEED);
-        player.removeStatusEffect(StatusEffects.STRENGTH);
+        player.removeStatusEffect(ModRegistries.HAPPINESS_EFFECT);
         
         syncPlayerState(player, state);
     }
