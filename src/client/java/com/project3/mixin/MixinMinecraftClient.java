@@ -1,5 +1,6 @@
 package com.project3.mixin;
 
+import com.project3.registry.ModRegistries;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
@@ -17,8 +18,8 @@ public class MixinMinecraftClient {
 
         ItemStack mainHand = client.player.getMainHandStack();
         ItemStack offHand = client.player.getOffHandStack();
-        boolean holdingChrono = mainHand.isOf(com.project3.Project3Mod.AI_CHRONOMETER) || offHand.isOf(com.project3.Project3Mod.AI_CHRONOMETER);
-        boolean holdingDump = mainHand.isOf(com.project3.Project3Mod.AI_DUMP_ANALYZER) || offHand.isOf(com.project3.Project3Mod.AI_DUMP_ANALYZER);
+        boolean holdingChrono = mainHand.isOf(ModRegistries.AI_CHRONOMETER) || offHand.isOf(ModRegistries.AI_CHRONOMETER);
+        boolean holdingDump = mainHand.isOf(ModRegistries.AI_DUMP_ANALYZER) || offHand.isOf(ModRegistries.AI_DUMP_ANALYZER);
 
         if (!holdingChrono && !holdingDump) return;
 
@@ -40,7 +41,7 @@ public class MixinMinecraftClient {
                         new com.project3.network.AdminToolUsePayload(itemType, actionType, targetPlayer.getUuid(), null)
                     );
 
-                    client.player.swingHand(mainHand.isOf(com.project3.Project3Mod.AI_CHRONOMETER) || mainHand.isOf(com.project3.Project3Mod.AI_DUMP_ANALYZER) ? net.minecraft.util.Hand.MAIN_HAND : net.minecraft.util.Hand.OFF_HAND);
+                    client.player.swingHand(mainHand.isOf(ModRegistries.AI_CHRONOMETER) || mainHand.isOf(ModRegistries.AI_DUMP_ANALYZER) ? net.minecraft.util.Hand.MAIN_HAND : net.minecraft.util.Hand.OFF_HAND);
                     ci.cancel();
                 }
             } else if (hitResult.getType() == net.minecraft.util.hit.HitResult.Type.BLOCK && holdingDump && (net.minecraft.client.util.InputUtil.isKeyPressed(client.getWindow(), net.minecraft.client.util.InputUtil.GLFW_KEY_LEFT_SHIFT) || net.minecraft.client.util.InputUtil.isKeyPressed(client.getWindow(), net.minecraft.client.util.InputUtil.GLFW_KEY_RIGHT_SHIFT))) {
@@ -51,7 +52,7 @@ public class MixinMinecraftClient {
                     new com.project3.network.AdminToolUsePayload(itemType, 3, null, blockPos)
                 );
 
-                client.player.swingHand(mainHand.isOf(com.project3.Project3Mod.AI_DUMP_ANALYZER) ? net.minecraft.util.Hand.MAIN_HAND : net.minecraft.util.Hand.OFF_HAND);
+                client.player.swingHand(mainHand.isOf(ModRegistries.AI_DUMP_ANALYZER) ? net.minecraft.util.Hand.MAIN_HAND : net.minecraft.util.Hand.OFF_HAND);
                 ci.cancel();
             }
         }

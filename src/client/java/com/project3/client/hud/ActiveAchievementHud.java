@@ -138,7 +138,7 @@ public class ActiveAchievementHud {
                     for (int dx = -2; dx <= 2; dx++) {
                         for (int dy = -1; dy <= 1; dy++) {
                             for (int dz = -2; dz <= 2; dz++) {
-                                if (world.getBlockState(playerPos.add(dx, dy, dz)).isOf(com.project3.Project3Mod.PRODUCER_BLOCK)) {
+                                if (world.getBlockState(playerPos.add(dx, dy, dz)).isOf(com.project3.registry.ModRegistries.PRODUCER_BLOCK)) {
                                     nearEmitter = true;
                                     break outer;
                                 }

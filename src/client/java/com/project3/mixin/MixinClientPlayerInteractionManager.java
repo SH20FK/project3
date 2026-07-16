@@ -1,6 +1,6 @@
 package com.project3.mixin;
 
-import com.project3.Project3Client;
+import com.project3.client.GloomVoidClientHandler;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
 import net.minecraft.entity.Entity;
@@ -17,8 +17,8 @@ public class MixinClientPlayerInteractionManager {
 
     @Inject(method = "attackEntity", at = @At("HEAD"), cancellable = true)
     private void onAttackEntity(PlayerEntity player, Entity target, CallbackInfo ci) {
-        if (Project3Client.GLITCHED_STATUE_IDS.contains(target.getId())) {
-            Project3Client.GLITCHED_STATUE_IDS.remove(target.getId());
+        if (GloomVoidClientHandler.GLITCHED_STATUE_IDS.contains(target.getId())) {
+            GloomVoidClientHandler.GLITCHED_STATUE_IDS.remove(target.getId());
 
             target.discard();
 
