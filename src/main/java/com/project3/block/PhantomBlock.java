@@ -55,7 +55,7 @@ public class PhantomBlock extends BlockWithEntity {
     private void vanish(World world, BlockPos pos) {
         if (!world.isClient() && world instanceof ServerWorld sw) {
             // Only vanish if still a phantom block (prevents double-vanish)
-            if (!sw.getBlockState(pos).isOf(com.project3.Project3Mod.PHANTOM_BLOCK)) return;
+            if (!sw.getBlockState(pos).isOf(com.project3.registry.ModRegistries.PHANTOM_BLOCK)) return;
             sw.setBlockState(pos, Blocks.AIR.getDefaultState());
             sw.spawnParticles(ParticleTypes.POOF, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 10, 0.2, 0.2, 0.2, 0.05);
             sw.playSound(null, pos, SoundEvents.BLOCK_FIRE_EXTINGUISH, SoundCategory.BLOCKS, 1.0f, 1.0f);

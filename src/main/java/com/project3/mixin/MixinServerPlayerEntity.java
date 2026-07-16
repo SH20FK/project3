@@ -27,6 +27,21 @@ public class MixinServerPlayerEntity {
      */
     private static final ThreadLocal<Boolean> IN_P3_REDIRECT = ThreadLocal.withInitial(() -> false);
 
+    @Inject(method = "tick", at = @At("HEAD"))
+    private void onTick(org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
+        ServerPlayerEntity player = (ServerPlayerEntity) (Object) this;
+        ServerWorld world = (ServerWorld) player.getEntityWorld();
+        
+        // Instant void death in the End + Unnamed Effect
+        if (world.getRegistryKey() == World.END && player.getY() < -60.0) {
+            if (player.isAlive()) {
+                Project3State state = Project3State.getOrCreate(world.getServer());
+                state.setUnnamedEffectActive(player.getUuid(), true);
+                player.damage(world, world.getDamageSources().outOfWorld(), Float.MAX_VALUE);
+            }
+        }
+    }
+
     @Inject(method = "teleportTo", at = @At("HEAD"), cancellable = true)
     private void onTeleportTo(TeleportTarget target, CallbackInfoReturnable<Entity> cir) {
         // Guard: if we are already inside a redirect call, skip to avoid infinite recursion
@@ -90,7 +105,7 @@ public class MixinServerPlayerEntity {
                     }
 
                     // Initialize the flickering portal ticks and state
-                    Project3Mod.initializePlayerVoidPortal(player.getUuid(), player.getRandom());
+                    com.project3.player.PlayerCooldowns.initPlayerVoidPortal(player.getUuid(), player.getRandom());
 
                     TeleportTarget newTarget = new TeleportTarget(
                         voidWorld,
@@ -151,5 +166,27 @@ public class MixinServerPlayerEntity {
                 }
             }
         }
+    }
+
+    @Inject(method = "getPlayerListName", at = @At("RETURN"), cancellable = true)
+    private void onGetPlayerListName(org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Text> cir) {
+        ServerPlayerEntity player = (ServerPlayerEntity) (Object) this;
+        ServerWorld world = (ServerWorld) player.getEntityWorld();
+        Project3State state = Project3State.getOrCreate(world.getServer());
+        
+        int completed = state.getCompletedAchievements(player.getUuid()).size();
+        
+        net.minecraft.util.Formatting dimensionColor = net.minecraft.util.Formatting.WHITE;
+        if (world.getRegistryKey() == World.NETHER) {
+            dimensionColor = net.minecraft.util.Formatting.RED;
+        } else if (world.getRegistryKey() == World.END || world.getRegistryKey() == com.project3.Project3Mod.GLOOM_VOID_WORLD_KEY) {
+            dimensionColor = net.minecraft.util.Formatting.LIGHT_PURPLE;
+        }
+        
+        Text customName = Text.literal("")
+            .append(player.getName().copy().formatted(dimensionColor))
+            .append(Text.literal(" [" + completed + "]").formatted(net.minecraft.util.Formatting.GRAY));
+            
+        cir.setReturnValue(customName);
     }
 }

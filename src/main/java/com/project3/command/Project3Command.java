@@ -115,6 +115,15 @@ public class Project3Command {
                                 .executes(ctx -> executeLockNether(ctx.getSource())))
                         .then(CommandManager.literal("end")
                                 .executes(ctx -> executeLockEnd(ctx.getSource()))))
+                .then(CommandManager.literal("nethercorruption")
+                        .requires(source -> source.hasPermissionLevel(2))
+                        .executes(ctx -> {
+                            com.project3.event.NetherCorruptionEvent.trigger(ctx.getSource().getServer());
+                            ctx.getSource().sendFeedback(
+                                () -> Text.literal("§cNether Corruption Event запущен").formatted(Formatting.RED), false);
+                            return 1;
+                        })
+                )
                 .then(buildAchievementCommand())
         );
 
@@ -197,7 +206,7 @@ public class Project3Command {
             finalTriggerStr = triggerStr;
         }
 
-        AchievementManager manager = Project3Mod.getAchievementManager();
+        AchievementManager manager = Project3Mod.ACHIEVEMENT_MANAGER;
         if (manager.getAchievementById(id) != null) {
             source.sendFeedback(() -> Text.literal("Достижение с ID '" + id + "' уже существует!").formatted(Formatting.RED), false);
             return 0;
@@ -211,7 +220,7 @@ public class Project3Command {
     // ─── achievement list ─────────────────────────────────────────────────
 
     private static int executeAchievementList(ServerCommandSource source) {
-        AchievementManager manager = Project3Mod.getAchievementManager();
+        AchievementManager manager = Project3Mod.ACHIEVEMENT_MANAGER;
         List<AchievementDefinition> achievements = manager.getAchievements();
 
         if (achievements.isEmpty()) {
@@ -232,7 +241,7 @@ public class Project3Command {
     // ─── achievement remove ─────────────────────────────────────────────────
 
     private static int executeAchievementRemove(ServerCommandSource source, String id) {
-        AchievementManager manager = Project3Mod.getAchievementManager();
+        AchievementManager manager = Project3Mod.ACHIEVEMENT_MANAGER;
         if (manager.removeAchievement(id)) {
             source.sendFeedback(() -> Text.literal("Достижение '" + id + "' удалено.").formatted(Formatting.GREEN), true);
             return 1;
@@ -245,7 +254,7 @@ public class Project3Command {
     // ─── achievement progress ───────────────────────────────────────────────
 
     private static int executeAchievementProgress(ServerCommandSource source, ServerPlayerEntity player) {
-        AchievementManager manager = Project3Mod.getAchievementManager();
+        AchievementManager manager = Project3Mod.ACHIEVEMENT_MANAGER;
         Project3State state = Project3State.getOrCreate(source.getServer());
         String text = manager.getProgressText(player.getUuid(), state);
         source.sendFeedback(() -> Text.literal(text).formatted(Formatting.AQUA), false);
@@ -255,7 +264,7 @@ public class Project3Command {
     // ─── achievement reset ──────────────────────────────────────────────────
 
     private static int executeAchievementReset(ServerCommandSource source, ServerPlayerEntity player) {
-        AchievementManager manager = Project3Mod.getAchievementManager();
+        AchievementManager manager = Project3Mod.ACHIEVEMENT_MANAGER;
         Project3State state = Project3State.getOrCreate(source.getServer());
         manager.resetPlayer(player.getUuid(), state);
         manager.syncAdvancementsToMatchIndex(player, 0);
@@ -268,7 +277,7 @@ public class Project3Command {
     private static int executePlayerNext(ServerCommandSource source) {
         try {
             ServerPlayerEntity player = source.getPlayerOrThrow();
-            AchievementManager manager = Project3Mod.getAchievementManager();
+            AchievementManager manager = Project3Mod.ACHIEVEMENT_MANAGER;
             Project3State state = Project3State.getOrCreate(source.getServer());
             Set<String> completed = state.getCompletedAchievements(player.getUuid());
             
@@ -301,7 +310,7 @@ public class Project3Command {
     // ─── achievement next ───────────────────────────────────────────────────
 
     private static int executeAchievementNext(ServerCommandSource source, ServerPlayerEntity player, int count) {
-        AchievementManager manager = Project3Mod.getAchievementManager();
+        AchievementManager manager = Project3Mod.ACHIEVEMENT_MANAGER;
         Project3State state = Project3State.getOrCreate(source.getServer());
         int completedCount = 0;
 
@@ -351,7 +360,7 @@ public class Project3Command {
         
         // Sync player state to all online players
         for (ServerPlayerEntity player : source.getServer().getPlayerManager().getPlayerList()) {
-            com.project3.Project3Mod.syncPlayerState(player, state);
+        com.project3.player.PlayerStateManager.syncPlayerState(player, state);
         }
 
         source.sendFeedback(() -> Text.literal("Уровень прогресса установлен на: " + level).formatted(Formatting.GREEN), true);
@@ -371,7 +380,7 @@ public class Project3Command {
     private static int executeHappinessGive(ServerCommandSource source, ServerPlayerEntity player, int seconds) {
         Project3State state = Project3State.getOrCreate(source.getServer());
         long ticks = (long) seconds * 20L;
-        Project3Mod.grantHappiness(player, state, ticks);
+        com.project3.player.PlayerStateManager.grantHappiness(player, state, ticks);
         source.sendFeedback(() -> Text.literal("Эффект счастья выдан игроку " + player.getName().getString() + " на " + seconds + " сек.").formatted(Formatting.GREEN), true);
         player.sendMessage(Text.literal("§aВы чувствуете невероятное счастье и прилив сил!"), false);
         player.playSound(SoundEvents.BLOCK_BEACON_ACTIVATE, 1.0f, 1.2f);
@@ -382,7 +391,7 @@ public class Project3Command {
         Project3State state = Project3State.getOrCreate(source.getServer());
         state.setHappinessTicksLeft(player.getUuid(), 0L);
         player.removeStatusEffect(StatusEffects.LUCK);
-        Project3Mod.syncPlayerState(player, state);
+        com.project3.player.PlayerStateManager.syncPlayerState(player, state);
         source.sendFeedback(() -> Text.literal("Эффект счастья снят с игрока " + player.getName().getString()).formatted(Formatting.GREEN), true);
         player.sendMessage(Text.literal("§eОщущение счастья угасло..."), false);
         return 1;
@@ -391,7 +400,7 @@ public class Project3Command {
     private static int executeGloomGive(ServerCommandSource source, ServerPlayerEntity player, int seconds) {
         Project3State state = Project3State.getOrCreate(source.getServer());
         long ticks = (long) seconds * 20L;
-        Project3Mod.grantGloom(player, state, ticks);
+        com.project3.player.PlayerStateManager.grantGloom(player, state, ticks);
         source.sendFeedback(() -> Text.literal("Эффект уныния выдан игроку " + player.getName().getString() + " на " + seconds + " сек.").formatted(Formatting.GREEN), true);
         player.sendMessage(Text.literal("§cВы почувствовали внезапное уныние и слабость..."), false);
         player.playSound(SoundEvents.BLOCK_BEACON_DEACTIVATE, 1.0f, 0.8f);
@@ -403,7 +412,7 @@ public class Project3Command {
         state.setGloomTicksLeft(player.getUuid(), 0L);
         state.setGloomPermanent(player.getUuid(), false);
         player.removeStatusEffect(StatusEffects.UNLUCK);
-        Project3Mod.syncPlayerState(player, state);
+        com.project3.player.PlayerStateManager.syncPlayerState(player, state);
         source.sendFeedback(() -> Text.literal("Эффект уныния снят с игрока " + player.getName().getString()).formatted(Formatting.GREEN), true);
         player.sendMessage(Text.literal("§aУныние прошло. Вы чувствуете облегчение."), false);
         player.playSound(SoundEvents.BLOCK_BEACON_ACTIVATE, 1.0f, 1.2f);
@@ -416,14 +425,14 @@ public class Project3Command {
         MinecraftServer server = source.getServer();
         Project3State state = Project3State.getOrCreate(server);
 
-        synchronized (com.project3.Project3Mod.CALIBRATION_LOCK) {
-            if (state.isSeasonStarted() || com.project3.Project3Mod.calibrationTicksLeft > 0) {
+        synchronized (com.project3.world.CalibrationManager.CALIBRATION_LOCK) {
+            if (state.isSeasonStarted() || com.project3.world.CalibrationManager.calibrationTicksLeft > 0) {
                 source.sendFeedback(() -> Text.literal("Сезон уже запущен или идёт калибровка!").formatted(Formatting.RED), false);
                 return 0;
             }
 
             // Initialize calibration countdown to 1200 ticks (60 seconds)
-            com.project3.Project3Mod.calibrationTicksLeft = 1200;
+            com.project3.world.CalibrationManager.calibrationTicksLeft = 1200;
         }
 
         ServerWorld overworld = server.getOverworld();
@@ -551,7 +560,7 @@ public class Project3Command {
         Project3State state = Project3State.getOrCreate(server);
 
         int index = state.getCurrentAchievementIndex(target.getUuid());
-        var achievements = Project3Mod.getAchievementManager().getAchievements();
+        var achievements = Project3Mod.ACHIEVEMENT_MANAGER.getAchievements();
         final String finalActiveTitle;
         if (index >= 0 && index < achievements.size()) {
             finalActiveTitle = achievements.get(index).getTitle();
@@ -664,7 +673,7 @@ public class Project3Command {
             ServerWorld world = executor.getEntityWorld();
             if (world.getBlockState(phantomLightPos).isAir()) {
                 world.setBlockState(phantomLightPos, net.minecraft.block.Blocks.LIGHT.getDefaultState().with(net.minecraft.block.LightBlock.LEVEL_15, 6));
-                Project3Mod.COMMAND_SPAWNED_LIGHTS.computeIfAbsent(executor.getUuid(), uuid -> new ArrayList<>()).add(phantomLightPos);
+                com.project3.player.PlayerCooldowns.COMMAND_SPAWNED_LIGHTS.computeIfAbsent(executor.getUuid(), uuid -> new ArrayList<>()).add(phantomLightPos);
             }
 
             final String finalName = resolvedName;
@@ -687,7 +696,7 @@ public class Project3Command {
             com.project3.entity.PhantomReplicator.clearCommandPhantoms(executor);
 
             // Remove light blocks
-            List<BlockPos> lights = Project3Mod.COMMAND_SPAWNED_LIGHTS.remove(executor.getUuid());
+            List<BlockPos> lights = com.project3.player.PlayerCooldowns.COMMAND_SPAWNED_LIGHTS.remove(executor.getUuid());
             if (lights != null) {
                 ServerWorld world = (ServerWorld) executor.getEntityWorld();
                 if (world != null) {

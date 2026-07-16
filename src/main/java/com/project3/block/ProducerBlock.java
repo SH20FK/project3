@@ -48,7 +48,7 @@ public class ProducerBlock extends BlockWithEntity {
     public @Nullable <T extends BlockEntity> BlockEntityTicker<T> getTicker(
             World world, BlockState state, BlockEntityType<T> type) {
         if (world.isClient()) return null;
-        if (type == com.project3.Project3Mod.PRODUCER_BLOCK_ENTITY_TYPE) {
+        if (type == com.project3.registry.ModRegistries.PRODUCER_BLOCK_ENTITY_TYPE) {
             return (BlockEntityTicker<T>) (BlockEntityTicker<ProducerBlockEntity>) ProducerBlockEntity::serverTick;
         }
         return null;

@@ -1,6 +1,7 @@
 package com.project3.block.entity;
 
 import com.project3.Project3Mod;
+import com.project3.registry.ModRegistries;
 import com.project3.network.CameraRotatePayload;
 import com.project3.state.Project3State;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -42,10 +43,14 @@ public class ProducerBlockEntity extends BlockEntity {
     private static final int EFFECT_RADIUS = 3;
     private static final int COOLDOWN_TICKS = 600;             // 30 seconds
     private static final int CAMERA_CHANCE = 80;               // 1/80 per tick
+    private static final int DAMAGE_INTERVAL = 200;            // 10 seconds for damage
 
     // Fix #4: use net.minecraft.util.math.random.Random — thread-safe Minecraft random
     // Fix #19: wrap tickCounter using modulo to prevent integer overflow
     private int tickCounter = 0;
+    
+    // Per-player damage tracking
+    private final Map<java.util.UUID, Integer> playerTicksNear = new HashMap<>();
 
     // Processing system
     private final SimpleInventory processingInventory = new SimpleInventory(2) {
@@ -81,7 +86,7 @@ public class ProducerBlockEntity extends BlockEntity {
     public static final java.util.Set<BlockPos> CLIENT_PRODUCERS = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     public ProducerBlockEntity(BlockPos pos, BlockState state) {
-        super(Project3Mod.PRODUCER_BLOCK_ENTITY_TYPE, pos, state);
+        super(ModRegistries.PRODUCER_BLOCK_ENTITY_TYPE, pos, state);
     }
 
     public SimpleInventory getProcessingInventory() {
@@ -178,8 +183,46 @@ public class ProducerBlockEntity extends BlockEntity {
                         applyProducerEffects(player, serverWorld, pos);
                         p3state.setProducerCooldown(player.getUuid(), currentTick);
                     }
+                    
+                    // Increment time spent near producer
+                    int ticksNear = be.playerTicksNear.getOrDefault(player.getUuid(), 0) + EFFECT_TICK_INTERVAL;
+                    be.playerTicksNear.put(player.getUuid(), ticksNear);
+                    
+                    // Apply smooth animated damage/hunger every DAMAGE_INTERVAL (10 seconds)
+                    if (ticksNear % DAMAGE_INTERVAL == 0) {
+                        int cycles = ticksNear / DAMAGE_INTERVAL;
+                        
+                        // Calculate damage: 3.0 (1.5 hearts) * 1.3^cycles
+                        float damage = 3.0f * (float) Math.pow(1.3, cycles - 1);
+                        
+                        // Drain hunger
+                        int foodLevel = player.getHungerManager().getFoodLevel();
+                        if (foodLevel > 0) {
+                            player.getHungerManager().setFoodLevel(foodLevel - 1);
+                        }
+                        
+                        // If this damage would kill the player, grant Gloom
+                        if (player.getHealth() <= damage) {
+                            com.project3.player.PlayerStateManager.grantGloom(player, p3state, 12000L); // 10 minutes of Gloom
+                        }
+                        
+                        // Apply magical damage smoothly (it plays damage animation)
+                        player.damage(serverWorld, serverWorld.getDamageSources().magic(), damage);
+                    }
+                } else {
+                    // Reset counter if player steps out of range
+                    be.playerTicksNear.remove(player.getUuid());
                 }
             }
+        }
+        
+        // Visuals: White ash particles
+        if (rand.nextInt(10) == 0) {
+            serverWorld.spawnParticles(net.minecraft.particle.ParticleTypes.WHITE_ASH,
+                pos.getX() + 0.5 + (rand.nextDouble() - 0.5), 
+                pos.getY() + 1.0 + rand.nextDouble(), 
+                pos.getZ() + 0.5 + (rand.nextDouble() - 0.5), 
+                2, 0.0, 0.0, 0.0, 0.01);
         }
 
         // ── Processing Logic ───────────────────────────────────────────

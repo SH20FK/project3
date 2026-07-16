@@ -255,7 +255,22 @@ public class AchievementManager {
         LOGGER.info("[Project3] Player {} completed achievement '{}' ({})",
                 player.getName().getString(), achievement.getId(), achievement.getTitle());
         ((ServerWorld) player.getEntityWorld()).playSound(null, player.getX(), player.getY(), player.getZ(),
-                SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 1.0f, 1.0f);
+                SoundEvents.BLOCK_NOTE_BLOCK_BELL.value(), SoundCategory.PLAYERS, 1.0f, 1.2f);
+                
+        // Spawn green particles
+        ((ServerWorld) player.getEntityWorld()).spawnParticles(
+                net.minecraft.particle.ParticleTypes.HAPPY_VILLAGER, 
+                player.getX(), player.getY() + 1.0, player.getZ(), 
+                20, 0.5, 0.5, 0.5, 0.1);
+                
+        // Custom chat message
+        net.minecraft.text.MutableText msg = net.minecraft.text.Text.literal("Выполнена задача: " + achievement.getTitle())
+            .formatted(net.minecraft.util.Formatting.GREEN)
+            .styled(style -> style.withHoverEvent(new net.minecraft.text.HoverEvent(
+                net.minecraft.text.HoverEvent.Action.SHOW_TEXT, 
+                net.minecraft.text.Text.literal(achievement.getDescription()).formatted(net.minecraft.util.Formatting.GRAY)
+            )));
+        player.getServer().getPlayerManager().broadcast(msg, false);
 
         ItemStack cookies = new ItemStack(Items.COOKIE, 10);
         player.getInventory().offerOrDrop(cookies);
@@ -263,7 +278,7 @@ public class AchievementManager {
         int xpLevels = getLevelReward(questNum, player.getEntityWorld());
         player.addExperienceLevels(xpLevels);
 
-        com.project3.Project3Mod.grantHappiness(player, state, 72000L);
+        com.project3.player.PlayerStateManager.grantHappiness(player, state, 72000L);
         state.setUnnamedEffectActive(player.getUuid(), false);
 
         grantVanillaAdvancement(player, achievement.getId());
@@ -274,7 +289,7 @@ public class AchievementManager {
 
         syncAdvancements(player, state);
         syncActiveAchievement(player, state);
-        com.project3.Project3Mod.syncPlayerState(player, state);
+        com.project3.player.PlayerStateManager.syncPlayerState(player, state);
 
         // Season End Ceremony: all achievements completed
         int newIndex = state.getCurrentAchievementIndex(player.getUuid());
@@ -321,7 +336,7 @@ public class AchievementManager {
                 net.minecraft.entity.effect.StatusEffects.LUCK, -1, 0, false, false));
 
         // Max happiness
-        com.project3.Project3Mod.grantHappiness(player, state, 120000L);
+        com.project3.player.PlayerStateManager.grantHappiness(player, state, 120000L);
 
         LOGGER.info("[Project3] Player {} completed ALL achievements - Season End Ceremony triggered",
                 player.getName().getString());

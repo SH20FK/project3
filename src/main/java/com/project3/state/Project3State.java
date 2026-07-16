@@ -312,6 +312,8 @@ public class Project3State extends PersistentState {
         playerLastNetherPortalPos.forEach((uuid, val) -> portalsNbt.putString(uuid.toString(), val));
         nbt.put("last_nether_portal_pos", portalsNbt);
 
+        com.project3.event.NetherCorruptionEvent.writeNbt(nbt, registries);
+
         return nbt;
     }
 
@@ -431,6 +433,8 @@ public class Project3State extends PersistentState {
                 state.playerLastNetherPortalPos.put(UUID.fromString(key), portalsNbt.getString(key).orElse(""));
             } catch (IllegalArgumentException ignored) {}
         });
+
+        com.project3.event.NetherCorruptionEvent.readNbt(nbt, registries);
 
         return state;
     }

@@ -290,7 +290,7 @@ public class ShadowMerchant {
     }
 
     private static void renderNpc(ServerPlayerEntity npc, ServerWorld world, Vec3d pos) {
-        if (npc == null || npc.isRemoved() || !npc.isAlive() || npc.networkHandler == null) return;
+        if (npc == null || npc.isRemoved() || !npc.isAlive()) return;
         for (ServerPlayerEntity viewer : world.getPlayers()) {
             if (viewer == null || viewer.networkHandler == null || viewer.isRemoved() || !viewer.isAlive()) continue;
             if (viewer.getEntityPos().squaredDistanceTo(pos) < 64 * 64) {

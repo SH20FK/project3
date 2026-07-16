@@ -169,13 +169,14 @@ public class ActiveAchievementHud {
 
             int height = 32 + titleLines.size() * 10 + descLines.size() * 10;
 
-            String tabText = "ЗАДАЧИ";
-            int tw = client.textRenderer.getWidth(tabText);
-            int tabWidth = tw + 12;
+            // Text rendering removed per request
             int tabX = x + 8;
             int tabHeight = 10;
             int tabY = y - tabHeight;
             int tx = tabX + 6;
+            
+            // Still render the little top tab bar for aesthetic (without text)
+            int tabWidth = 20;
 
             context.fill(tabX, tabY, tabX + tabWidth, tabY + tabHeight, 0xD0101010);
             context.fill(tabX, tabY, tabX + 1, tabY + tabHeight, 0xFF000000);
@@ -184,8 +185,6 @@ public class ActiveAchievementHud {
             context.fill(tabX + 1, tabY + 1, tabX + 2, tabY + tabHeight, 0xFF8B8B8B);
             context.fill(tabX + 1, tabY + 1, tabX + tabWidth - 1, tabY + 2, 0xFF8B8B8B);
             context.fill(tabX + tabWidth - 2, tabY + 1, tabX + tabWidth - 1, tabY + tabHeight, 0xFF373737);
-
-            context.drawText(client.textRenderer, Text.literal(tabText).formatted(Formatting.GOLD), tx, tabY + 1, 0xFFFFFFFF, true);
 
             context.fill(x, y, x + width, y + height, 0xD0101010);
 

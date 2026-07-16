@@ -59,7 +59,7 @@ public class MixinPlayerAdvancementTracker implements PlayerAdvancementTrackerAc
                     Set<Identifier> allowedIds = new HashSet<>();
                     allowedIds.add(Identifier.of("p3", "root"));
 
-                    var achievements = Project3Mod.getAchievementManager().getAchievements();
+                    var achievements = com.project3.Project3Mod.ACHIEVEMENT_MANAGER.getAchievements();
                     for (AchievementDefinition def : achievements) {
                         String id = def.getId();
                         if (completed.contains(id)) {

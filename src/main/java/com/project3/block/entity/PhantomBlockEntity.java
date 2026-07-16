@@ -1,6 +1,6 @@
 package com.project3.block.entity;
 
-import com.project3.Project3Mod;
+import com.project3.registry.ModRegistries;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
@@ -19,7 +19,7 @@ public class PhantomBlockEntity extends BlockEntity {
     private BlockState replacedState = Blocks.STONE.getDefaultState();
 
     public PhantomBlockEntity(BlockPos pos, BlockState state) {
-        super(Project3Mod.PHANTOM_BLOCK_ENTITY_TYPE, pos, state);
+        super(ModRegistries.PHANTOM_BLOCK_ENTITY_TYPE, pos, state);
     }
 
     public BlockState getReplacedState() {

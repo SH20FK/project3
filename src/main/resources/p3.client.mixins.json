@@ -11,7 +11,8 @@
     "MixinMinecraftClient",
     "MixinClientPlayerInteractionManager",
     "MixinFogRenderer",
-    "MixinCompassState"
+    "MixinCompassState",
+    "MixinWorldRendererSky"
   ],
   "injectors": {
     "defaultRequire": 1

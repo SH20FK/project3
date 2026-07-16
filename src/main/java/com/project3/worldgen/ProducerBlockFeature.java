@@ -71,7 +71,7 @@ public class ProducerBlockFeature extends Feature<DefaultFeatureConfig> {
 
         if (foundGround) {
             // Replace the ground block so it doesn't protrude above the terrain
-            world.setBlockState(checkPos, Project3Mod.PRODUCER_BLOCK.getDefaultState(), Block.NOTIFY_LISTENERS);
+            world.setBlockState(checkPos, com.project3.registry.ModRegistries.PRODUCER_BLOCK.getDefaultState(), Block.NOTIFY_LISTENERS);
             return true;
         }
 

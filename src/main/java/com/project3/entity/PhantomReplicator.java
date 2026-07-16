@@ -280,8 +280,8 @@ public class PhantomReplicator {
             }
         }
 
-        java.util.Deque<Vec3d> posList = POSITION_HISTORY.computeIfAbsent(uuid, k -> new java.util.ArrayDeque<>());
-        java.util.Deque<Float> yawList = YAW_HISTORY.computeIfAbsent(uuid, k -> new java.util.ArrayDeque<>());
+        java.util.Deque<Vec3d> posList = POSITION_HISTORY.computeIfAbsent(uuid, k -> new java.util.concurrent.ConcurrentLinkedDeque<>());
+        java.util.Deque<Float> yawList = YAW_HISTORY.computeIfAbsent(uuid, k -> new java.util.concurrent.ConcurrentLinkedDeque<>());
 
         posList.addLast(player.getEntityPos());
         yawList.addLast(player.getYaw());
@@ -295,7 +295,9 @@ public class PhantomReplicator {
     }
 
     public static void tickActiveNpcs(MinecraftServer server) {
-        for (ActiveNpc activeNpc : ACTIVE_NPCS) {
+        java.util.Iterator<ActiveNpc> iterator = ACTIVE_NPCS.iterator();
+        while (iterator.hasNext()) {
+            ActiveNpc activeNpc = iterator.next();
             activeNpc.ticksLeft--;
             if (activeNpc.ticksLeft <= 0) {
                 destroyNpc(activeNpc);
@@ -1027,7 +1029,7 @@ public class PhantomReplicator {
 
         if (world.getBlockState(blockPos.up()).isAir()) {
             world.setBlockState(blockPos.up(), Blocks.LIGHT.getDefaultState().with(net.minecraft.block.LightBlock.LEVEL_15, 6));
-            Project3Mod.COMMAND_SPAWNED_LIGHTS.computeIfAbsent(targetPlayer.getUuid(), uuid -> new ArrayList<>()).add(blockPos.up());
+            com.project3.player.PlayerCooldowns.COMMAND_SPAWNED_LIGHTS.computeIfAbsent(targetPlayer.getUuid(), uuid -> new ArrayList<>()).add(blockPos.up());
         }
     }
 
