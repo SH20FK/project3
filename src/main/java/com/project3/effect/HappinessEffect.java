@@ -5,7 +5,7 @@ import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffectCategory;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.world.World;
+import net.minecraft.server.world.ServerWorld;
 
 public class HappinessEffect extends StatusEffect {
 
@@ -14,7 +14,7 @@ public class HappinessEffect extends StatusEffect {
     }
 
     @Override
-    public boolean applyUpdateEffect(World world, LivingEntity entity, int amplifier) {
+    public boolean applyUpdateEffect(ServerWorld world, LivingEntity entity, int amplifier) {
         entity.addStatusEffect(new StatusEffectInstance(StatusEffects.SPEED, 40, amplifier, true, false, false));
         entity.addStatusEffect(new StatusEffectInstance(StatusEffects.STRENGTH, 40, amplifier, true, false, false));
         entity.addStatusEffect(new StatusEffectInstance(StatusEffects.LUCK, 40, amplifier, true, false, false));

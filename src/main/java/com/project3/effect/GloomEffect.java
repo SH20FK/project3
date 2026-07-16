@@ -5,7 +5,7 @@ import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffectCategory;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.world.World;
+import net.minecraft.server.world.ServerWorld;
 
 public class GloomEffect extends StatusEffect {
 
@@ -14,7 +14,7 @@ public class GloomEffect extends StatusEffect {
     }
 
     @Override
-    public boolean applyUpdateEffect(World world, LivingEntity entity, int amplifier) {
+    public boolean applyUpdateEffect(ServerWorld world, LivingEntity entity, int amplifier) {
         entity.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 40, amplifier, true, false, false));
         entity.addStatusEffect(new StatusEffectInstance(StatusEffects.WEAKNESS, 40, amplifier, true, false, false));
         entity.addStatusEffect(new StatusEffectInstance(StatusEffects.UNLUCK, 40, amplifier, true, false, false));
