@@ -182,7 +182,7 @@ public class AchievementTrigger {
                 yield found;
             }
             case "play_music_disc" -> {
-                yield safeCustomStatCheck(player, Identifier.of("minecraft", "play_record"), threshold);
+                yield safeCustomStatCheck(player, com.project3.Project3Mod.PLAY_MUSIC_DISC_STAT_ID, threshold);
             }
             case "touch_bedrock" -> {
                 BlockPos pos = player.getBlockPos();
@@ -742,7 +742,7 @@ public class AchievementTrigger {
                         yield safeCustomStat(player, com.project3.Project3Mod.OPEN_INVENTORY_STAT_ID);
                     }
                     case "play_music_disc" -> {
-                        yield safeCustomStat(player, Identifier.of("minecraft", "play_record"));
+                        yield safeCustomStat(player, com.project3.Project3Mod.PLAY_MUSIC_DISC_STAT_ID);
                     }
                     case "brush_suspicious" -> {
                         yield safeCustomStat(player, Identifier.of("minecraft", "clean_block"));

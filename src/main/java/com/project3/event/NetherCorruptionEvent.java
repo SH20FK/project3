@@ -288,8 +288,8 @@ public class NetherCorruptionEvent {
     // ─── Восстановление блоков ──────────────────────────────────────────────
 
     private static void restoreBlocks(ServerWorld world) {
-        // Разбиваем на пачки чтобы не лагануть при старте
         List<Map.Entry<BlockPos, BlockState>> entries = new ArrayList<>(savedBlocks.entrySet());
+        List<Map.Entry<BlockPos, BlockState>> remaining = Collections.synchronizedList(new ArrayList<>());
         int batchSize = 500;
         int batches = (int) Math.ceil(entries.size() / (double) batchSize);
 
@@ -297,23 +297,53 @@ public class NetherCorruptionEvent {
             final int from = i * batchSize;
             final int to = Math.min(from + batchSize, entries.size());
             final List<Map.Entry<BlockPos, BlockState>> batch = entries.subList(from, to);
-            final int delayTick = i * 2; // каждая пачка через 2 тика для загрузки чанков
+            final int delayTick = i * 2;
 
             Project3Mod.schedule(delayTick, () -> {
+                int skipped = 0;
                 for (Map.Entry<BlockPos, BlockState> entry : batch) {
                     BlockPos pos = entry.getKey();
-                    // Ensure chunk is loaded before setting block
                     if (world.isChunkLoaded(pos.getX() >> 4, pos.getZ() >> 4)) {
                         world.setBlockState(pos, entry.getValue(),
                             net.minecraft.block.Block.NOTIFY_LISTENERS | net.minecraft.block.Block.FORCE_STATE);
                     } else {
-                        Project3Mod.LOGGER.warn("Chunk not loaded at {} during nether corruption restore", pos);
+                        remaining.add(entry);
+                        skipped++;
                     }
                 }
+                Project3Mod.LOGGER.info("Nether corruption restore batch at tick {}: {}/{} restored",
+                    delayTick, batch.size() - skipped, batch.size());
             });
         }
 
-        // Don't clear here - let onPlayerJoin handle cleanup after all batches complete
+        // Retry blocks in unloaded chunks after main batches complete
+        int retryDelay = (batches + 1) * 2;
+        Project3Mod.schedule(retryDelay, () -> retryRemainingBlocks(world, remaining));
+    }
+
+    private static void retryRemainingBlocks(ServerWorld world, List<Map.Entry<BlockPos, BlockState>> remaining) {
+        if (remaining.isEmpty()) return;
+
+        List<Map.Entry<BlockPos, BlockState>> stillPending = new ArrayList<>();
+        for (Map.Entry<BlockPos, BlockState> entry : remaining) {
+            BlockPos pos = entry.getKey();
+            if (world.isChunkLoaded(pos.getX() >> 4, pos.getZ() >> 4)) {
+                world.setBlockState(pos, entry.getValue(),
+                    net.minecraft.block.Block.NOTIFY_LISTENERS | net.minecraft.block.Block.FORCE_STATE);
+            } else {
+                stillPending.add(entry);
+            }
+        }
+
+        Project3Mod.LOGGER.info("Nether corruption retry: {}/{} blocks restored, {} still pending",
+            remaining.size() - stillPending.size(), remaining.size(), stillPending.size());
+
+        remaining.clear();
+        remaining.addAll(stillPending);
+
+        if (!stillPending.isEmpty()) {
+            Project3Mod.schedule(40, () -> retryRemainingBlocks(world, remaining));
+        }
     }
 
     // ─── NBT сохранение (для персистентности между рестартами) ──────────────

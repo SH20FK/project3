@@ -1,6 +1,6 @@
 {
-  "effect.minecraft.luck": "Happiness",
-  "effect.minecraft.unluck": "Gloom",
+  "effect.p3.happiness_effect": "Happiness",
+  "effect.p3.gloom_effect": "Gloom",
   "block.p3.producer_block": "Producer Block",
   "category.p3": "Project3",
   "key.p3.toggle_panel": "Toggle Achievement Panel",

@@ -66,6 +66,7 @@ public class Project3Mod implements ModInitializer {
     public static final Identifier GIVE_ALLAY_FLOWER_STAT_ID = Identifier.of(MODID, "give_allay_flower");
     public static final Identifier MACE_KILL_50_BLOCKS_STAT_ID = Identifier.of(MODID, "mace_kill_50_blocks");
     public static final Identifier SHOOT_FIREWORK_CROSSBOW_STAT_ID = Identifier.of(MODID, "shoot_firework_crossbow");
+    public static final Identifier PLAY_MUSIC_DISC_STAT_ID = Identifier.of(MODID, "play_music_disc");
     
     public static final RegistryKey<World> GLOOM_VOID_WORLD_KEY = RegistryKey.of(RegistryKeys.WORLD, Identifier.of(MODID, "gloom_void"));
 

@@ -1,6 +1,6 @@
 {
-  "effect.minecraft.luck": "Счастье",
-  "effect.minecraft.unluck": "Уныние",
+  "effect.p3.happiness_effect": "Счастье",
+  "effect.p3.gloom_effect": "Уныние",
   "block.p3.producer_block": "Блок-производитель",
   "block.p3.phantom_block": "Фантомный блок",
   "block.p3.void_glass": "Стекло пустоты",
