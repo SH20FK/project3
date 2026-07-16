@@ -116,7 +116,7 @@ public class Project3Command {
                         .then(CommandManager.literal("end")
                                 .executes(ctx -> executeLockEnd(ctx.getSource()))))
                 .then(CommandManager.literal("nethercorruption")
-                        .requires(CommandManager.requirePermissionLevel(2))
+                        .requires(CommandManager.requirePermissionLevel(CommandManager.GAMEMASTERS_CHECK))
                         .executes(ctx -> {
                             com.project3.event.NetherCorruptionEvent.trigger(ctx.getSource().getServer());
                             ctx.getSource().sendFeedback(
