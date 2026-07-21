@@ -4,7 +4,7 @@ import net.minecraft.client.particle.*;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.particle.SimpleParticleType;
 
-public class GloomMistParticle extends SpriteBillboardParticle {
+public class GloomMistParticle extends BillboardParticle {
 
     protected GloomMistParticle(ClientWorld world, double x, double y, double z, double vx, double vy, double vz, SpriteProvider spriteProvider) {
         super(world, x, y, z, vx, vy, vz);
