@@ -48,6 +48,24 @@ public class ActiveAchievementHud {
         Identifier.of("p3", "textures/hud/texture6.png")   // 6 — unnamed (dark red)
     };
 
+    // ─── Panel Textures (achievement window) ─────────────────────────
+    private static final Identifier WIN_GRAY   = Identifier.of("p3", "textures/hud/texture_window_gray.png");
+    private static final Identifier WIN_GREEN  = Identifier.of("p3", "textures/hud/texture_window_green.png");
+    private static final Identifier WIN_RED    = Identifier.of("p3", "textures/hud/texture_window_red.png");
+    private static final Identifier WIN_PURPLE = Identifier.of("p3", "textures/hud/texture_window_purple.png");
+
+    // Slide animation
+    private static float panelAnimOffset = 300f;
+    private static int panelState = 0;
+
+    private static int   completeFadeTicks = 0;
+    private static float colorAlpha = 0f;
+    private static Identifier activeColorTex = WIN_GREEN;
+
+    private static String   prevId = "";
+    private static int      prevCompletedCount = 0;
+    private static com.project3.network.AchievementSyncPayload pendingPayload = null;
+
     // ─── Animation State ─────────────────────────────────────────────────
     private static int prevStateIndex = 0;
     private static int transitionTicks = 0;
@@ -67,19 +85,100 @@ public class ActiveAchievementHud {
         if (gloomTicksLeft > 0) {
             gloomTicksLeft--;
         }
+
+        float slideSpeed = 18f;
+
+        switch (panelState) {
+            case 1 -> {
+                panelAnimOffset -= slideSpeed;
+                if (panelAnimOffset <= 0f) {
+                    panelAnimOffset = 0f;
+                    panelState = 2;
+                }
+            }
+            case 3 -> {
+                completeFadeTicks--;
+                colorAlpha = 1f - (completeFadeTicks / 20f);
+                if (completeFadeTicks <= 0) {
+                    colorAlpha = 1f;
+                    panelState = 4;
+                }
+            }
+            case 4 -> {
+                panelAnimOffset += slideSpeed;
+                if (panelAnimOffset >= 300f) {
+                    panelAnimOffset = 300f;
+                    colorAlpha = 0f;
+                    if (pendingPayload != null) {
+                        applyPayload(pendingPayload);
+                        prevId = currentId;
+                        pendingPayload = null;
+                        panelState = 1;
+                        panelAnimOffset = 300f;
+                    } else {
+                        panelState = 0;
+                    }
+                }
+            }
+        }
     }
 
     // ─── Data updates ──────────────────────────────────────────────────────
 
-    public static void update(AchievementSyncPayload payload) {
-        currentId = payload.id();
-        currentTitle = payload.title();
+    private static void applyPayload(AchievementSyncPayload payload) {
+        currentId          = payload.id();
+        currentTitle       = payload.title();
         currentDescription = payload.description();
-        iconItemId = payload.iconItemId();
-        currentValue = payload.currentValue();
-        targetValue = payload.targetValue();
-        completedCount = payload.completedCount();
-        totalCount = payload.totalCount();
+        iconItemId         = payload.iconItemId();
+        currentValue       = payload.currentValue();
+        targetValue        = payload.targetValue();
+        completedCount     = payload.completedCount();
+        totalCount         = payload.totalCount();
+    }
+
+    public static void update(AchievementSyncPayload payload) {
+        boolean isCompleted = payload.completedCount() > prevCompletedCount
+                              && prevCompletedCount >= 0
+                              && !currentId.isEmpty();
+        boolean isNewTask   = !payload.id().equals(prevId) && !payload.id().isEmpty();
+
+        prevCompletedCount = payload.completedCount();
+
+        if (isCompleted && (panelState == 2 || panelState == 1)) {
+            MinecraftClient client = MinecraftClient.getInstance();
+            if (client.world != null) {
+                if (client.world.getRegistryKey() == net.minecraft.world.World.NETHER) {
+                    activeColorTex = WIN_RED;
+                } else if (client.world.getRegistryKey() == net.minecraft.world.World.END) {
+                    activeColorTex = WIN_PURPLE;
+                } else {
+                    activeColorTex = WIN_GREEN;
+                }
+            } else {
+                activeColorTex = WIN_GREEN;
+            }
+            colorAlpha = 0f;
+            completeFadeTicks = 20;
+            panelState = 3;
+        }
+
+        if (isNewTask) {
+            prevId = payload.id();
+            if (panelState == 0 || panelState == 4) {
+                applyPayload(payload);
+                colorAlpha = 0f;
+                panelAnimOffset = 300f;
+                panelState = 1;
+            } else {
+                pendingPayload = payload;
+                if (panelState == 2 || panelState == 1) {
+                    panelState = 4;
+                }
+            }
+        } else {
+            applyPayload(payload);
+        }
+
         hasData = true;
     }
 
@@ -159,9 +258,9 @@ public class ActiveAchievementHud {
         }
 
         // 1. Render active achievements panel (top-right) if data exists and panel is visible
-        if (panelVisible && hasData && !currentId.isEmpty()) {
+        if (panelVisible && hasData && !currentId.isEmpty() && panelState != 0) {
             int width = 220;
-            int x = screenWidth - width - 10;
+            int x = (int)(screenWidth - width - 10 + panelAnimOffset);
             int y = 15;
 
             java.util.List<OrderedText> titleLines = client.textRenderer.wrapLines(Text.literal(currentTitle).formatted(Formatting.YELLOW), 180);
@@ -169,18 +268,15 @@ public class ActiveAchievementHud {
 
             int height = 32 + titleLines.size() * 10 + descLines.size() * 10;
 
-            context.fill(x, y, x + width, y + height, 0xD0101010);
+            context.drawTexture(RenderPipelines.GUI_TEXTURED,
+                WIN_GRAY, x, y, 0, 0, width, height, 220, 64);
 
-            context.fill(x, y, x + width, y + 1, 0xFF000000);
-            context.fill(x, y + 1, x + 1, y + height, 0xFF000000);
-            context.fill(x + width - 1, y + 1, x + width, y + height, 0xFF000000);
-            context.fill(x, y + height - 1, x + width, y + height, 0xFF000000);
-
-            context.fill(x + 1, y + 1, x + width - 1, y + 2, 0xFF8B8B8B);
-            context.fill(x + 1, y + 2, x + 2, y + height - 1, 0xFF8B8B8B);
-
-            context.fill(x + 1, y + height - 2, x + width - 1, y + height - 1, 0xFF373737);
-            context.fill(x + width - 2, y + 2, x + width - 1, y + height - 2, 0xFF373737);
+            if ((panelState == 3 || panelState == 4) && colorAlpha > 0f) {
+                com.mojang.blaze3d.systems.RenderSystem.setShaderColor(1f, 1f, 1f, colorAlpha);
+                context.drawTexture(RenderPipelines.GUI_TEXTURED,
+                    activeColorTex, x, y, 0, 0, width, height, 220, 64);
+                com.mojang.blaze3d.systems.RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+            }
 
             ItemStack iconStack = ItemStack.EMPTY;
             if (iconItemId != null && !iconItemId.isEmpty()) {
