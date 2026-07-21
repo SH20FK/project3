@@ -26,7 +26,7 @@ public class GloomMistParticle extends BillboardParticle {
     }
 
     @Override
-    public ParticleTextureSheet getType() {
+    public ParticleTextureSheet getRenderType() {
         return ParticleTextureSheet.PARTICLE_SHEET_TRANSLUCENT;
     }
 
