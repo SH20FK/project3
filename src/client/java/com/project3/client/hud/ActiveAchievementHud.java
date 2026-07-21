@@ -266,15 +266,13 @@ public class ActiveAchievementHud {
             java.util.List<OrderedText> titleLines = client.textRenderer.wrapLines(Text.literal(currentTitle).formatted(Formatting.YELLOW), 180);
             java.util.List<OrderedText> descLines = client.textRenderer.wrapLines(Text.literal(currentDescription).formatted(Formatting.GRAY), 180);
 
-            int height = 32 + titleLines.size() * 10 + descLines.size() * 10;
+            int height = 32 + titleLines.size() * 10 + descLines.size() * 10 + 11 + 5;
 
-            context.drawTexture(RenderPipelines.GUI_TEXTURED,
-                WIN_GRAY, x, y, 0, 0, width, height, 220, 64);
+            draw9Slice(context, WIN_GRAY, x, y, width, height, 0xFFFFFFFF);
 
             if ((panelState == 3 || panelState == 4) && colorAlpha > 0f) {
                 int alpha = (int)(colorAlpha * 255);
-                context.drawTexture(RenderPipelines.GUI_TEXTURED,
-                    activeColorTex, x, y, 0, 0, width, height, 220, 64, (alpha << 24) | 0xFFFFFF);
+                draw9Slice(context, activeColorTex, x, y, width, height, (alpha << 24) | 0xFFFFFF);
             }
 
             ItemStack iconStack = ItemStack.EMPTY;
@@ -499,6 +497,30 @@ public class ActiveAchievementHud {
                 context.drawTexture(RenderPipelines.GUI_TEXTURED, BAR_TEXTURES[stateIndex - 1], bx + wobble, by, 0, 0, texW, texH, texW, texH);
             }
         }
+    }
+
+    private static final int BORDER = 6;
+    private static final int BODY_H = 52;
+    private static final int TEX_W = 220;
+    private static final int TEX_H = 64;
+
+    private static void draw9Slice(DrawContext context, Identifier tex, int x, int y, int width, int height, int color) {
+        int innerH = height - 2 * BORDER;
+        if (innerH < 0) innerH = 0;
+
+        // Top border (6px, full width)
+        context.drawTexture(RenderPipelines.GUI_TEXTURED, tex, x, y, 0, 0, width, BORDER, TEX_W, TEX_H, color);
+
+        // Body: tile the 52px middle section (v=6..57) to fill innerH
+        int drawn = 0;
+        while (drawn < innerH) {
+            int tileH = Math.min(BODY_H, innerH - drawn);
+            context.drawTexture(RenderPipelines.GUI_TEXTURED, tex, x, y + BORDER + drawn, 0, BORDER, width, tileH, TEX_W, TEX_H, color);
+            drawn += BODY_H;
+        }
+
+        // Bottom border (6px, full width)
+        context.drawTexture(RenderPipelines.GUI_TEXTURED, tex, x, y + height - BORDER, 0, TEX_H - BORDER, width, BORDER, TEX_W, TEX_H, color);
     }
 
     // ─── Tooltip ─────────────────────────────────────────────────────────
