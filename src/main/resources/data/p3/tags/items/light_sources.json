@@ -1,0 +1,30 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:torch",
+    "minecraft:soul_torch",
+    "minecraft:lantern",
+    "minecraft:soul_lantern",
+    "minecraft:glowstone",
+    "minecraft:campfire",
+    "minecraft:soul_campfire",
+    "minecraft:sea_lantern",
+    "minecraft:shroomlight",
+    "minecraft:pearlescent_froglight",
+    "minecraft:verdant_froglight",
+    "minecraft:ochre_froglight",
+    "minecraft:crying_obsidian",
+    "minecraft:beacon",
+    "minecraft:conduit",
+    "minecraft:jack_o_lantern",
+    "minecraft:glow_berries",
+    "minecraft:glow_ink_sac",
+    "minecraft:glowstone_dust",
+    "#minecraft:candles",
+    "minecraft:end_rod",
+    "minecraft:lava_bucket",
+    "minecraft:blaze_powder",
+    "minecraft:blaze_rod",
+    "minecraft:magma_block"
+  ]
+}

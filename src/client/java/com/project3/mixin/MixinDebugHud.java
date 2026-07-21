@@ -18,7 +18,7 @@ public class MixinDebugHud {
 
     @ModifyVariable(method = "drawText", at = @At("HEAD"), argsOnly = true, index = 2)
     private List<String> modifyDebugText(List<String> original) {
-        if (client.world != null && client.world.getRegistryKey().getValue().toString().equals("p3:gloom_void")) {
+        if (client.world != null && client.world.getRegistryKey().equals(com.project3.Project3Mod.GLOOM_VOID_WORLD_KEY)) {
             if (original != null) {
                 List<String> corrupted = new ArrayList<>();
                 for (String line : original) {

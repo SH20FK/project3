@@ -3,9 +3,11 @@ package com.project3;
 import com.project3.achievement.AchievementManager;
 import com.project3.command.Project3Command;
 import com.project3.dread.ShadowMerchant;
+import com.project3.entity.PlayerSessionData;
 import com.project3.entity.PhantomReplicator;
 import com.project3.player.PlayerCooldowns;
 import com.project3.player.PlayerEventHandler;
+import com.project3.particle.ModParticles;
 import com.project3.registry.ModRegistries;
 import com.project3.registry.NetworkRegistrar;
 import com.project3.state.Project3State;
@@ -51,7 +53,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Main server-side entry point for Project3.
@@ -81,7 +84,7 @@ public class Project3Mod implements ModInitializer {
             this.action = action;
         }
     }
-    private static final List<ScheduledTask> SCHEDULED_TASKS = new CopyOnWriteArrayList<>();
+    private static final Queue<ScheduledTask> SCHEDULED_TASKS = new ConcurrentLinkedQueue<>();
 
     public static void schedule(int delayTicks, Runnable action) {
         SCHEDULED_TASKS.add(new ScheduledTask(delayTicks, action));
@@ -108,7 +111,9 @@ public class Project3Mod implements ModInitializer {
     public void onInitialize() {
         LOGGER.info("Project3 initializing…");
 
+        com.project3.config.ModConfig.load();
         ModRegistries.registerAll();
+        ModParticles.registerAll();
         NetworkRegistrar.registerAll();
 
         CommandRegistrationCallback.EVENT.register(Project3Command::register);
@@ -186,8 +191,9 @@ public class Project3Mod implements ModInitializer {
 
         // ── Server tick ──────────────────────────────────────────────────────
         ServerTickEvents.END_SERVER_TICK.register(server -> {
-            List<ScheduledTask> toRemove = new ArrayList<>();
-            for (ScheduledTask task : SCHEDULED_TASKS) {
+            List<ScheduledTask> remaining = new ArrayList<>();
+            ScheduledTask task;
+            while ((task = SCHEDULED_TASKS.poll()) != null) {
                 task.remaining--;
                 if (task.remaining <= 0) {
                     try {
@@ -195,15 +201,16 @@ public class Project3Mod implements ModInitializer {
                     } catch (Exception e) {
                         LOGGER.error("Error executing scheduled task", e);
                     }
-                    toRemove.add(task);
+                } else {
+                    remaining.add(task);
                 }
             }
-            SCHEDULED_TASKS.removeAll(toRemove);
+            SCHEDULED_TASKS.addAll(remaining);
 
             try {
                 PhantomReplicator.tickActiveNpcs(server);
                 for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
-                    PhantomReplicator.tickRecordingAndHistory(player);
+                    PlayerSessionData.tick(player);
                 }
             } catch (Exception e) {
                 LOGGER.error("Error in virtual phantom tick", e);
@@ -263,12 +270,7 @@ public class Project3Mod implements ModInitializer {
                     double centerX = pos.getX() + 0.5;
                     double centerY = pos.getY() + 0.5;
                     double centerZ = pos.getZ() + 0.5;
-                    for (int i = 0; i < 150; i++) {
-                        double theta = i * 0.2;
-                        double radius = 0.1 + i * 0.02;
-                        double yOffset = (i * 0.03) - 2.0;
-                        sw.spawnParticles(ParticleTypes.PORTAL, centerX + Math.cos(theta) * radius, centerY + yOffset, centerZ + Math.sin(theta) * radius, 1, 0.0, 0.0, 0.0, 0.0);
-                    }
+                    sw.spawnParticles(ParticleTypes.PORTAL, centerX, centerY - 1.0, centerZ, 80, 0.6, 2.0, 0.6, 0.03);
                     BlockPos offsetPos = pos.offset(hitResult.getSide());
                     sw.updateListeners(offsetPos, sw.getBlockState(offsetPos), sw.getBlockState(offsetPos), 3);
                     return ActionResult.FAIL;

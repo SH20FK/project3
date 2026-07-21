@@ -6,7 +6,6 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.world.World;
@@ -24,9 +23,6 @@ public class CalmingAmuletItem extends Item {
     @Override
     public ActionResult use(World world, PlayerEntity user, Hand hand) {
         if (world.isClient()) return ActionResult.PASS;
-        if (user instanceof ServerPlayerEntity player) {
-            player.sendMessage(Text.literal("§6[Амулет]§r: Активен. Держи в offhand для снижения страха (-3/10 сек)."), false);
-        }
         return ActionResult.SUCCESS;
     }
 
@@ -38,7 +34,6 @@ public class CalmingAmuletItem extends Item {
         stack.damage(1, player, EquipmentSlot.OFFHAND);
 
         if (stack.getDamage() >= stack.getMaxDamage()) {
-            player.sendMessage(Text.literal("§8[Амулет]§r: §cАмулет рассыпался в прах..."), false);
             player.playSound(net.minecraft.sound.SoundEvents.ENTITY_ITEM_BREAK.value(), 1.0f, 1.0f);
             stack.decrement(1);
         }

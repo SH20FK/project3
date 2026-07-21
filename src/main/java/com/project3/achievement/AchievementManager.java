@@ -300,12 +300,6 @@ public class AchievementManager {
     private void triggerSeasonEndCeremony(ServerPlayerEntity player, Project3State state) {
         ServerWorld world = (ServerWorld) player.getEntityWorld();
 
-        // Epic title
-        player.networkHandler.sendPacket(new net.minecraft.network.packet.s2c.play.TitleS2CPacket(
-                net.minecraft.text.Text.literal("§6§lСЕЗОН ЗАВЕРШЁН")));
-        player.networkHandler.sendPacket(new net.minecraft.network.packet.s2c.play.SubtitleS2CPacket(
-                net.minecraft.text.Text.literal("§eВы прошли все испытания. Мир помнит вас.")));
-
         // Fireworks celebration
         for (int i = 0; i < 20; i++) {
             int delay = i * 5;

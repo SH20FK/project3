@@ -15,7 +15,6 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 
@@ -49,31 +48,6 @@ public class ShadowMerchant {
             this.inventory = inventory;
         }
     }
-
-    // ─── Merchant dialogue lines ────────────────────────────────────────────
-
-    private static final String[] GREETINGS = {
-        "§8[???]§r: Я вижу твой страх...",
-        "§8[???]§r: Принеси мне свой ужас...",
-        "§8[???]§r: Ты хочешь силы? Заплати цену...",
-        "§8[???]§r: Пустота помнит всех...",
-        "§8[???]§r: Осторожно... покупка не возвращается...",
-        "§8[???]§r: Твой страх имеет цену...",
-        "§8[???]§r: Я ждал тебя...",
-    };
-
-    private static final String[] PURCHASE_SUCCESS = {
-        "§8[???]§r: Хороший выбор...",
-        "§8[???]§r: Твой страх был высок...",
-        "§8[???]§r: Ты становишься сильнее...",
-        "§8[???]§r: Пустота довольна...",
-    };
-
-    private static final String[] PURCHASE_FAIL = {
-        "§8[???]§r: Маловато страха...",
-        "§8[???]§r: Ты ещё не напуган достаточно...",
-        "§8[???]§r: Приходи когда будешь бояться...",
-    };
 
     // ─── Spawn ──────────────────────────────────────────────────────────────
 
@@ -124,10 +98,6 @@ public class ShadowMerchant {
         MerchantData data = new MerchantData(npc, player, tradeList);
         ACTIVE_MERCHANTS.put(player.getUuid(), data);
 
-        // Greeting
-        String greeting = GREETINGS[player.getRandom().nextInt(GREETINGS.length)];
-        player.sendMessage(Text.literal(greeting), false);
-
         // Eerie sound
         world.playSound(null, px, py, pz, SoundEvents.ENTITY_WARDEN_AMBIENT, SoundCategory.HOSTILE, 1.5f, 0.3f);
     }
@@ -165,13 +135,10 @@ public class ShadowMerchant {
         MerchantItem item = data.inventory.get(slotIndex);
         int buyCount = data.buyCounts.getOrDefault(slotIndex, 0);
         if (buyCount >= item.maxBuys()) {
-            player.sendMessage(Text.literal("§8[???]§r: §cЭтот товар закончился..."), false);
             return false;
         }
 
         if (!DreadManager.spendDread(player, item.dreadCost())) {
-            String fail = PURCHASE_FAIL[player.getRandom().nextInt(PURCHASE_FAIL.length)];
-            player.sendMessage(Text.literal(fail), false);
             player.playSound(SoundEvents.ENTITY_VILLAGER_NO, 1.0f, 0.5f);
             return false;
         }
@@ -183,37 +150,9 @@ public class ShadowMerchant {
 
         data.buyCounts.put(slotIndex, buyCount + 1);
 
-        String success = PURCHASE_SUCCESS[player.getRandom().nextInt(PURCHASE_SUCCESS.length)];
-        player.sendMessage(Text.literal(success), false);
-        player.sendMessage(Text.literal("§8[???]§r: §7Получено: §f" + item.name()), false);
         player.playSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 0.6f);
 
         return true;
-    }
-
-    // ─── Show Inventory ─────────────────────────────────────────────────────
-
-    public static void showInventory(ServerPlayerEntity player) {
-        MerchantData data = ACTIVE_MERCHANTS.get(player.getUuid());
-        if (data == null) return;
-
-        player.sendMessage(Text.literal("§8═══ ТЕНЕВОЙ ТОРГОВЕЦ ═══"), false);
-        player.sendMessage(Text.literal("§7Твой Страх: §c" + DreadManager.getDread(player) + "§7/§c" + DreadManager.DREAD_MAX), false);
-        player.sendMessage(Text.literal(""), false);
-
-        for (int i = 0; i < data.inventory.size(); i++) {
-            MerchantItem item = data.inventory.get(i);
-            int bought = data.buyCounts.getOrDefault(i, 0);
-            boolean soldOut = bought >= item.maxBuys();
-            String status = soldOut ? "§4[ПРОДАНО]" : "§a[Купить]";
-            String line = String.format("§7[%d] §f%s §7— §c%d Dread §7(%d/%d) %s",
-                    i + 1, item.name(), item.dreadCost(), bought, item.maxBuys(), status);
-            player.sendMessage(Text.literal(line), false);
-        }
-
-        player.sendMessage(Text.literal(""), false);
-        player.sendMessage(Text.literal("§7Напиши §e/p3 buy <номер> §7для покупки"), false);
-        player.sendMessage(Text.literal("§8Исчезает через: §c" + (data.ticksLeft / 20) + " сек"), false);
     }
 
     // ─── Tick ───────────────────────────────────────────────────────────────
@@ -237,7 +176,6 @@ public class ShadowMerchant {
             // Check distance
             double dist = player.getEntityPos().distanceTo(npc.getEntityPos());
             if (dist > MERCHANT_RANGE) {
-                player.sendMessage(Text.literal("§8[???]§r: §7Ты ушёл слишком далеко..."), false);
                 destroyMerchant(data);
                 it.remove();
                 continue;
@@ -260,10 +198,6 @@ public class ShadowMerchant {
                 );
             }
 
-            // Warning at 10 seconds
-            if (data.ticksLeft == 200) {
-                player.sendMessage(Text.literal("§8[???]§r: §7Я ухожу..."), false);
-            }
         }
     }
 

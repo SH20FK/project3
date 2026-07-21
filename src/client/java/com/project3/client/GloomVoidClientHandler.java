@@ -28,7 +28,7 @@ public final class GloomVoidClientHandler {
 
     public static void tick(MinecraftClient client) {
         isInGloomVoid = client.world != null 
-            && client.world.getRegistryKey().getValue().toString().equals("p3:gloom_void");
+            && client.world.getRegistryKey().equals(com.project3.Project3Mod.GLOOM_VOID_WORLD_KEY);
 
         // Ambient particles in Gloom Void
         if (isInGloomVoid && client.player != null) {

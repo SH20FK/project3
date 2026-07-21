@@ -45,11 +45,6 @@ public class DreadManager {
         addDread(player, 3);
     }
 
-    /** Whisper received */
-    public static void onWhisper(ServerPlayerEntity player) {
-        addDread(player, 1);
-    }
-
     /** Paranoia spike (name flicker etc) */
     public static void onParanoia(ServerPlayerEntity player) {
         addDread(player, 2);

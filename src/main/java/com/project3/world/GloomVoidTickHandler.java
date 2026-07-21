@@ -19,7 +19,6 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 
@@ -264,36 +263,6 @@ public final class GloomVoidTickHandler {
                 SoundEvents.BLOCK_FENCE_GATE_OPEN, SoundCategory.MASTER, 0.4f, 0.3f);
         }
 
-        // Whisper System
-        int whisperInterval = 200 - escalationLevel * 30;
-        if (whisperInterval < 80) whisperInterval = 80;
-        float whisperChance = 0.15f + escalationLevel * 0.08f;
-        if (whisperChance > 0.5f) whisperChance = 0.5f;
-        if (playerWorld.getTime() % whisperInterval == 0 && player.getRandom().nextFloat() < whisperChance) {
-            String[] whispers = {
-                "§8[???]: §7Помогите...",
-                "§8[???]: §7Оно здесь...",
-                "§8[???]: §7Не поворачивайся...",
-                "§8[???]: §7Они следят за тобой...",
-                "§8[???]: §7Беги...",
-                "§8[???]: §7Ты не один...",
-                "§8[???]: §7Слышишь это?",
-                "§8[???]: §7Не смотри в темноту...",
-                "§8[???]: §7Оно движется...",
-                "§8[???]: §7Спасения нет...",
-                "§8[???]: §7Мы были такими же...",
-                "§8[???]: §7Осторожно позади...",
-                "§8[???]: §7Не делай этого...",
-                "§8[???]: §7Ты слышишь шаги?",
-                "§8[???]: §7Помогите мне..."
-            };
-            String whisper = whispers[player.getRandom().nextInt(whispers.length)];
-            player.sendMessage(Text.literal(whisper), false);
-            DreadManager.onWhisper(player);
-            playerWorld.playSound(null, player.getX(), player.getY(), player.getZ(),
-                SoundEvents.ENTITY_PLAYER_BREATH, SoundCategory.MASTER, 0.3f, 0.5f);
-        }
-
         // 2e. Shadow Merchant spawn
         float merchantChance = 0.05f + escalationLevel * 0.03f;
         if (merchantChance > 0.2f) merchantChance = 0.2f;
@@ -306,7 +275,6 @@ public final class GloomVoidTickHandler {
         if (sectorTicks > 0) {
             PlayerCooldowns.SECTOR.put(player.getUuid(), sectorTicks - 1);
         } else {
-            player.sendMessage(Text.literal("§8[Эхо]: §7Сектор замыкается..."), false);
             DreadManager.onGlitch(player);
             playerWorld.playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_WARDEN_HEARTBEAT, SoundCategory.MASTER, 2.0f, 0.8f);
@@ -321,7 +289,6 @@ public final class GloomVoidTickHandler {
                     ServerPlayNetworking.send(player, new FogTargetPayload(8.0F));
                     playerWorld.playSound(null, player.getX(), player.getY(), player.getZ(),
                         SoundEvents.ENTITY_PLAYER_BREATH, SoundCategory.MASTER, 2.0f, 0.8f);
-                    player.sendMessage(Text.literal("§7[Эхо]: §aПуть свободен."), false);
                 }
             });
 
@@ -370,7 +337,6 @@ public final class GloomVoidTickHandler {
                     }
                 }
                 playerWorld.playSound(null, pPos, SoundEvents.BLOCK_PORTAL_TRIGGER, SoundCategory.BLOCKS, 1.0f, 1.0f);
-                player.sendMessage(Text.literal("§a[Система] Связь восстановлена. Портал стабилен."), false);
                 portalStateTicks = player.getRandom().nextInt(1200) + 1200;
             } else {
                 boolean playerNearPortal = player.getBlockPos().getManhattanDistance(pPos) < 5;
@@ -382,7 +348,6 @@ public final class GloomVoidTickHandler {
                     }
                     playerWorld.playSound(null, pPos, SoundEvents.BLOCK_GLASS_BREAK, SoundCategory.BLOCKS, 1.2f, 0.5f);
                     playerWorld.playSound(null, pPos, SoundEvents.BLOCK_PORTAL_TRAVEL, SoundCategory.BLOCKS, 0.8f, 0.5f);
-                    player.sendMessage(Text.literal("§c[Система] Сигнальный портал нестабилен... Связь с реальностью потеряна."), false);
                     portalStateTicks = player.getRandom().nextInt(200) + 200;
                 } else {
                     PlayerCooldowns.PORTAL_IS_LIT.put(player.getUuid(), true);
@@ -396,16 +361,8 @@ public final class GloomVoidTickHandler {
     public static boolean isHoldingLightSource(ServerPlayerEntity player) {
         for (net.minecraft.util.Hand hand : net.minecraft.util.Hand.values()) {
             net.minecraft.item.ItemStack stack = player.getStackInHand(hand);
-            if (!stack.isEmpty()) {
-                net.minecraft.item.Item item = stack.getItem();
-                String name = net.minecraft.registry.Registries.ITEM.getId(item).getPath();
-                if (name.contains("torch") || name.contains("lantern") || name.contains("glowstone") || 
-                    name.contains("campfire") || name.contains("sea_lantern") || name.contains("shroomlight") || 
-                    name.contains("pearlescent_froglight") || name.contains("verdant_froglight") || 
-                    name.contains("ochre_froglight") || name.contains("crying_obsidian") || 
-                    name.contains("beacon") || name.contains("conduit") || name.contains("jack_o_lantern")) {
-                    return true;
-                }
+            if (!stack.isEmpty() && stack.isIn(com.project3.registry.ModTags.LIGHT_SOURCES)) {
+                return true;
             }
         }
         return false;

@@ -12,7 +12,7 @@ public class GloomFogModifier extends FogModifier {
 
     @Override
     public void applyStartEndModifier(FogData data, Camera camera, ClientWorld world, float tickDelta, RenderTickCounter renderTickCounter) {
-        if (world != null && world.getRegistryKey().getValue().toString().equals("p3:gloom_void")) {
+        if (world != null && world.getRegistryKey().equals(com.project3.Project3Mod.GLOOM_VOID_WORLD_KEY)) {
             data.environmentalStart *= 0.3F;
             data.environmentalEnd *= 0.6F;
             data.renderDistanceStart *= 0.3F;

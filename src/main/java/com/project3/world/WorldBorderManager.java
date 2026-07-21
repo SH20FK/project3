@@ -4,15 +4,11 @@ import com.project3.player.PlayerCooldowns;
 import com.project3.state.Project3State;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.network.packet.s2c.play.SubtitleS2CPacket;
-import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
 
 /**
@@ -81,12 +77,6 @@ public final class WorldBorderManager {
 
         // First offense: warning only (no teleport, no debuffs)
         if (violations == 1) {
-            player.networkHandler.sendPacket(new TitleS2CPacket(
-                    Text.literal("§e⚠ ВНИМАНИЕ").formatted(Formatting.YELLOW)
-            ));
-            player.networkHandler.sendPacket(new SubtitleS2CPacket(
-                    Text.literal("§7Вы приближаетесь к границе сектора")
-            ));
             overworld.playSound(null, player.getBlockPos(), SoundEvents.BLOCK_NOTE_BLOCK_BIT.value(), SoundCategory.MASTER, 1.0f, 0.5f);
             return;
         }
@@ -129,13 +119,5 @@ public final class WorldBorderManager {
 
         // Scary Elder Guardian sound effect on boundary violation
         overworld.playSound(null, player.getBlockPos(), SoundEvents.ENTITY_ELDER_GUARDIAN_CURSE, SoundCategory.MASTER, 1.0f, 0.5f);
-
-        // Title message
-        player.networkHandler.sendPacket(new TitleS2CPacket(
-                Text.literal("ВЫДВОРЕНИЕ ИЗ СЕКТОРА").formatted(Formatting.RED)
-        ));
-        player.networkHandler.sendPacket(new SubtitleS2CPacket(
-                Text.literal("§4Нарушение паспортного режима.")
-        ));
     }
 }

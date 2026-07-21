@@ -18,7 +18,7 @@ import java.util.List;
 public class MixinFogRenderer {
 
     @Shadow
-    private static List FOG_MODIFIERS;
+    private static List<net.minecraft.client.render.fog.FogModifier> FOG_MODIFIERS;
 
     @Inject(method = "<clinit>", at = @At("RETURN"))
     private static void onClinit(CallbackInfo ci) {
@@ -34,7 +34,7 @@ public class MixinFogRenderer {
 
     @Unique
     private boolean p3$isGloomVoid(ClientWorld world) {
-        return world != null && world.getRegistryKey().getValue().toString().equals("p3:gloom_void");
+        return world != null && world.getRegistryKey().equals(com.project3.Project3Mod.GLOOM_VOID_WORLD_KEY);
     }
 
 }
