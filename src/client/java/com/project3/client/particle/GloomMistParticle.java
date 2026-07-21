@@ -26,8 +26,8 @@ public class GloomMistParticle extends BillboardParticle {
     }
 
     @Override
-    public ParticleRenderType getRenderType() {
-        return ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT;
+    public ParticleTextureSheet getRenderType() {
+        return ParticleTextureSheet.PARTICLE_SHEET_TRANSLUCENT;
     }
 
     public static class Factory implements ParticleFactory<SimpleParticleType> {
