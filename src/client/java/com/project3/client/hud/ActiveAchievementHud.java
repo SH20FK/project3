@@ -272,10 +272,9 @@ public class ActiveAchievementHud {
                 WIN_GRAY, x, y, 0, 0, width, height, 220, 64);
 
             if ((panelState == 3 || panelState == 4) && colorAlpha > 0f) {
-                com.mojang.blaze3d.systems.RenderSystem.setShaderColor(1f, 1f, 1f, colorAlpha);
+                int alpha = (int)(colorAlpha * 255);
                 context.drawTexture(RenderPipelines.GUI_TEXTURED,
-                    activeColorTex, x, y, 0, 0, width, height, 220, 64);
-                com.mojang.blaze3d.systems.RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+                    activeColorTex, x, y, 0, 0, width, height, 220, 64, (alpha << 24) | 0xFFFFFF);
             }
 
             ItemStack iconStack = ItemStack.EMPTY;
