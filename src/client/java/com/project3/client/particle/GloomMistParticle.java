@@ -1,6 +1,7 @@
 package com.project3.client.particle;
 
 import net.minecraft.client.particle.*;
+import net.minecraft.client.render.*;
 import net.minecraft.client.texture.Sprite;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.particle.SimpleParticleType;
