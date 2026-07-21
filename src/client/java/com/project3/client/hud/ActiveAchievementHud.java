@@ -259,12 +259,12 @@ public class ActiveAchievementHud {
 
         // 1. Render active achievements panel (top-right) if data exists and panel is visible
         if (panelVisible && hasData && !currentId.isEmpty() && panelState != 0) {
-            int width = 220;
-            int x = (int)(screenWidth - width - 10 + panelAnimOffset);
-            int y = 33;
+            int width = 230;
+            int x = (int)(screenWidth - width - 5 + panelAnimOffset);
+            int y = 28;
 
-            java.util.List<OrderedText> titleLines = client.textRenderer.wrapLines(Text.literal(currentTitle).formatted(Formatting.YELLOW), 180);
-            java.util.List<OrderedText> descLines = client.textRenderer.wrapLines(Text.literal(currentDescription).formatted(Formatting.GRAY), 180);
+            java.util.List<OrderedText> titleLines = client.textRenderer.wrapLines(Text.literal(currentTitle).formatted(Formatting.YELLOW), 190);
+            java.util.List<OrderedText> descLines = client.textRenderer.wrapLines(Text.literal(currentDescription).formatted(Formatting.GRAY), 190);
 
             int height = 32 + titleLines.size() * 10 + descLines.size() * 10 + 11 + 5;
 
