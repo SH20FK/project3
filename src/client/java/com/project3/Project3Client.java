@@ -8,8 +8,6 @@ import com.project3.client.GloomVoidClientHandler;
 import com.project3.client.hud.ActiveAchievementHud;
 import com.project3.client.hud.DreadHandler;
 import com.project3.client.hud.ParanoiaHandler;
-//import com.project3.client.particle.GloomMistParticle;
-//import com.project3.particle.ModParticles;
 import com.project3.registry.ModRegistries;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
@@ -40,10 +38,6 @@ public class Project3Client implements ClientModInitializer {
                 KeyBinding.Category.INVENTORY
             )
         );
-
-        // ── Register Particles ────────────────────────────────────────────
-        //FIXME: Re-enable once particle API is fixed for 1.21.11
-        //ParticleFactoryRegistry.getInstance().register(ModParticles.GLOOM_MIST, GloomMistParticle.Factory::new);
 
         // ── Register BlockEntityRenderers ─────────────────────────────────
         BlockEntityRendererRegistry.register(ModRegistries.PRODUCER_BLOCK_ENTITY_TYPE, ProducerBlockEntityRenderer::new);
