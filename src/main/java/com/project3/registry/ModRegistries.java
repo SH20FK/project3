@@ -141,6 +141,7 @@ public final class ModRegistries {
         Registry.register(Registries.CUSTOM_STAT, com.project3.Project3Mod.MACE_KILL_50_BLOCKS_STAT_ID, com.project3.Project3Mod.MACE_KILL_50_BLOCKS_STAT_ID);
         Registry.register(Registries.CUSTOM_STAT, com.project3.Project3Mod.SHOOT_FIREWORK_CROSSBOW_STAT_ID, com.project3.Project3Mod.SHOOT_FIREWORK_CROSSBOW_STAT_ID);
         Registry.register(Registries.CUSTOM_STAT, com.project3.Project3Mod.PLAY_MUSIC_DISC_STAT_ID, com.project3.Project3Mod.PLAY_MUSIC_DISC_STAT_ID);
+        Registry.register(Registries.CUSTOM_STAT, com.project3.Project3Mod.OPEN_INVENTORY_STAT_ID, com.project3.Project3Mod.OPEN_INVENTORY_STAT_ID);
 
         // World-gen Feature
         Registry.register(Registries.FEATURE, Identifier.of(MODID, "producer_block"), PRODUCER_BLOCK_FEATURE);

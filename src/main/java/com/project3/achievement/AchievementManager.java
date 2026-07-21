@@ -336,6 +336,15 @@ public class AchievementManager {
     }
 
     public void syncActiveAchievement(ServerPlayerEntity player, Project3State state) {
+        if (!state.isSeasonStarted()) {
+            AchievementSyncPayload empty = new AchievementSyncPayload("", "", "", "", 0, 0, 0, 0);
+            AchievementSyncPayload last = lastSentPayloads.get(player.getUuid());
+            if (last == null || !last.equals(empty)) {
+                ServerPlayNetworking.send(player, empty);
+                lastSentPayloads.put(player.getUuid(), empty);
+            }
+            return;
+        }
         int index = state.getCurrentAchievementIndex(player.getUuid());
         int total = achievements.size();
         
