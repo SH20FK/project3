@@ -8,6 +8,5 @@
   "block.p3.void_glass": "Void Glass",
   "block.p3.dead_space": "Dead Space",
   "item.p3.ai_chronometer": "AI Chronometer",
-  "item.p3.ai_dump_analyzer": "AI Dump Analyzer",
-  "item.p3.calming_amulet": "Calming Amulet"
+  "item.p3.ai_dump_analyzer": "AI Dump Analyzer"
 }

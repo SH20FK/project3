@@ -10,7 +10,6 @@ import com.project3.effect.HappinessEffect;
 import com.project3.effect.GloomEffect;
 import com.project3.item.AIChronometerItem;
 import com.project3.item.AIDumpAnalyzerItem;
-import com.project3.item.CalmingAmuletItem;
 import com.project3.worldgen.ProducerBlockFeature;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.minecraft.block.AbstractBlock;
@@ -87,12 +86,6 @@ public final class ModRegistries {
                     .registryKey(RegistryKey.of(RegistryKeys.ITEM, Identifier.of(MODID, "ai_dump_analyzer")))
                     .maxCount(1));
 
-    public static final Item CALMING_AMULET = new CalmingAmuletItem(
-            new Item.Settings()
-                    .registryKey(RegistryKey.of(RegistryKeys.ITEM, Identifier.of(MODID, "calming_amulet")))
-                    .maxCount(1)
-                    .maxDamage(500));
-
     // ─── Status Effects ──────────────────────────────────────────────────────
 
     public static RegistryEntry<StatusEffect> HAPPINESS_EFFECT;
@@ -115,7 +108,6 @@ public final class ModRegistries {
         // Items (standalone)
         Registry.register(Registries.ITEM, Identifier.of(MODID, "ai_chronometer"),  AI_CHRONOMETER);
         Registry.register(Registries.ITEM, Identifier.of(MODID, "ai_dump_analyzer"), AI_DUMP_ANALYZER);
-        Registry.register(Registries.ITEM, Identifier.of(MODID, "calming_amulet"),   CALMING_AMULET);
 
         // Block Entity Types
         PRODUCER_BLOCK_ENTITY_TYPE = Registry.register(

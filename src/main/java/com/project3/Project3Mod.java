@@ -2,7 +2,6 @@ package com.project3;
 
 import com.project3.achievement.AchievementManager;
 import com.project3.command.Project3Command;
-import com.project3.dread.ShadowMerchant;
 import com.project3.entity.PlayerSessionData;
 import com.project3.entity.PhantomReplicator;
 import com.project3.player.PlayerCooldowns;
@@ -228,7 +227,6 @@ public class Project3Mod implements ModInitializer {
             }
 
             com.project3.dread.DreadManager.tickDecay(server);
-            ShadowMerchant.tickAll(server);
             WorldOdditiesHandler.tick(server);
             WorldBorderManager.checkPlayers(server);
         });

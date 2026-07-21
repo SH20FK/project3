@@ -267,15 +267,14 @@ public class ActiveAchievementHud {
             java.util.List<OrderedText> descLines = client.textRenderer.wrapLines(Text.literal(currentDescription).formatted(Formatting.GRAY), 180);
 
             int height = 32 + titleLines.size() * 10 + descLines.size() * 10;
-            int texH = Math.max(64, height);
 
             context.drawTexture(RenderPipelines.GUI_TEXTURED,
-                WIN_GRAY, x, y, 0, 0, width, height, 220, texH);
+                WIN_GRAY, x, y, 0, 0, width, height, 220, 64);
 
             if ((panelState == 3 || panelState == 4) && colorAlpha > 0f) {
                 int alpha = (int)(colorAlpha * 255);
                 context.drawTexture(RenderPipelines.GUI_TEXTURED,
-                    activeColorTex, x, y, 0, 0, width, height, 220, texH, (alpha << 24) | 0xFFFFFF);
+                    activeColorTex, x, y, 0, 0, width, height, 220, 64, (alpha << 24) | 0xFFFFFF);
             }
 
             ItemStack iconStack = ItemStack.EMPTY;

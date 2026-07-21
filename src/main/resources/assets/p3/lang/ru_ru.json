@@ -7,7 +7,6 @@
   "block.p3.dead_space": "Мёртвое пространство",
   "item.p3.ai_chronometer": "ИИ-Хронометр",
   "item.p3.ai_dump_analyzer": "ИИ-Анализатор дампов",
-  "item.p3.calming_amulet": "Амулет Спокойствия",
   "category.p3": "Project3",
   "key.p3.toggle_panel": "Переключить панель достижений"
 }

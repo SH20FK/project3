@@ -2,7 +2,6 @@ package com.project3.player;
 
 import com.project3.Project3Mod;
 import com.project3.dread.DreadManager;
-import com.project3.dread.ShadowMerchant;
 import com.project3.network.CameraRotatePayload;
 import com.project3.network.RemovePhantomPayload;
 import com.project3.registry.ModRegistries;
@@ -96,7 +95,6 @@ public final class PlayerEventHandler {
             Project3Mod.LOGGER.error("Error cleaning up player data on disconnect: {}", player.getName().getString(), e);
         }
         DreadManager.onDisconnect(player.getUuid());
-        ShadowMerchant.onDisconnect(player.getUuid());
         PlayerCooldowns.onDisconnect(player.getUuid());
     }
 
@@ -205,13 +203,6 @@ public final class PlayerEventHandler {
                     ServerPlayNetworking.send(player, new RemovePhantomPayload(eid));
                 }
                 PlayerCooldowns.PHANTOM_YAWS.remove(player.getUuid());
-            }
-        }
-
-        ItemStack offhand = player.getOffHandStack();
-        if (!offhand.isEmpty() && offhand.getItem() instanceof com.project3.item.CalmingAmuletItem) {
-            if (server.getTicks() % 200 == 0) { 
-                com.project3.item.CalmingAmuletItem.tickAmulet(player, offhand);
             }
         }
 

@@ -2,7 +2,6 @@ package com.project3.world;
 
 import com.project3.Project3Mod;
 import com.project3.dread.DreadManager;
-import com.project3.dread.ShadowMerchant;
 import com.project3.entity.PhantomReplicator;
 import com.project3.network.FogTargetPayload;
 import com.project3.network.ShaderFlashPayload;
@@ -261,13 +260,6 @@ public final class GloomVoidTickHandler {
             Vec3d creakPos = player.getEntityPos().add(creakOffset);
             playerWorld.playSound(null, creakPos.x, creakPos.y, creakPos.z,
                 SoundEvents.BLOCK_FENCE_GATE_OPEN, SoundCategory.MASTER, 0.4f, 0.3f);
-        }
-
-        // 2e. Shadow Merchant spawn
-        float merchantChance = 0.05f + escalationLevel * 0.03f;
-        if (merchantChance > 0.2f) merchantChance = 0.2f;
-        if (playerWorld.getTime() % 1200 == 0 && player.getRandom().nextFloat() < merchantChance) {
-            ShadowMerchant.trySpawn(player);
         }
 
         // 3. Perception Collapse Trap
