@@ -526,7 +526,7 @@ public class PhantomReplicator {
         npc.discard();
     }
 
-    private static void broadcastToViewers(ServerPlayerEntity npc, Packet<?> packet) {
+    public static void broadcastToViewers(ServerPlayerEntity npc, Packet<?> packet) {
         Vec3d pos = npc.getEntityPos();
         for (ServerPlayerEntity viewer : ((ServerWorld) npc.getEntityWorld()).getPlayers()) {
             if (viewer == null || viewer.networkHandler == null || viewer.isRemoved() || !viewer.isAlive()) continue;

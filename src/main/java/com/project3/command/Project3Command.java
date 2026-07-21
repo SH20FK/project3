@@ -101,11 +101,6 @@ public class Project3Command {
                         .then(CommandManager.literal("clear")
                                 .executes(ctx -> executePhantomClear(ctx.getSource())))
                 )
-                .then(CommandManager.literal("shop")
-                        .executes(ctx -> executeShop(ctx.getSource())))
-                .then(CommandManager.literal("buy")
-                        .then(CommandManager.argument("slot", IntegerArgumentType.integer(1, 10))
-                                .executes(ctx -> executeBuy(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "slot")))))
                 .then(CommandManager.literal("unlock")
                         .then(CommandManager.literal("nether")
                                 .executes(ctx -> executeUnlockNether(ctx.getSource())))
@@ -717,30 +712,6 @@ public class Project3Command {
             }
 
             source.sendFeedback(() -> Text.literal("§aВсе заспавненные фантомы убраны.").formatted(Formatting.GREEN), true);
-            return 1;
-        } catch (Exception e) {
-            source.sendFeedback(() -> Text.literal("Эту команду может использовать только игрок.").formatted(Formatting.RED), false);
-            return 0;
-        }
-    }
-
-    private static int executeShop(ServerCommandSource source) {
-        try {
-            ServerPlayerEntity player = source.getPlayerOrThrow();
-            com.project3.dread.ShadowMerchant.showInventory(player);
-            return 1;
-        } catch (Exception e) {
-            source.sendFeedback(() -> Text.literal("Эту команду может использовать только игрок.").formatted(Formatting.RED), false);
-            return 0;
-        }
-    }
-
-    private static int executeBuy(ServerCommandSource source, int slot) {
-        try {
-            ServerPlayerEntity player = source.getPlayerOrThrow();
-            if (!com.project3.dread.ShadowMerchant.handleBuy(player, slot - 1)) {
-                player.sendMessage(Text.literal("§cНе удалось купить. Проверь свой Страх и наличие торговца."), false);
-            }
             return 1;
         } catch (Exception e) {
             source.sendFeedback(() -> Text.literal("Эту команду может использовать только игрок.").formatted(Formatting.RED), false);
