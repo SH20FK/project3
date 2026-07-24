@@ -15,7 +15,6 @@ import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ServerPlayerEntity.class)
@@ -86,7 +85,7 @@ public class MixinServerPlayerEntity {
                 if (voidWorld != null) {
                     state.setLastNetherPortalPos(player.getUuid(), player.getX(), player.getY(), player.getZ());
 
-                    int hash = player.getUuid().hashCode();
+                    int hash = player.getUuid().hashCode() & 0x7FFFFFFF;
                     double vx = (hash % 1000) * 1000.0;
                     double vy = 64.0;
                     double vz = ((hash / 1000) % 1000) * 1000.0;
@@ -190,11 +189,5 @@ public class MixinServerPlayerEntity {
             .append(Text.literal(" [" + completed + "]").formatted(net.minecraft.util.Formatting.GRAY));
             
         cir.setReturnValue(customName);
-    }
-
-    @Inject(method = "getDeathMessage", at = @At("RETURN"), cancellable = true)
-    private void onGetDeathMessage(CallbackInfoReturnable<Text> cir) {
-        ServerPlayerEntity player = (ServerPlayerEntity) (Object) this;
-        cir.setReturnValue(Text.literal("§c" + player.getName().getString() + "§r погиб(ла) по неизвестным причинам"));
     }
 }
