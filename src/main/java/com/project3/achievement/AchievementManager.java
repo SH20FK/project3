@@ -34,11 +34,8 @@ public class AchievementManager {
     private final List<AchievementDefinition> achievements = new ArrayList<>();
     private final Map<UUID, AchievementSyncPayload> lastSentPayloads = new java.util.concurrent.ConcurrentHashMap<>();
     private int tickAccum = 0;
-    // Enchanting consumes levels before the statistic is observed on the next server tick.
-    // Keep the previous tick's values to validate that the enchant was selected at level 30.
-    private final Map<UUID, Integer> lastExperienceLevels = new HashMap<>();
-    // ONLY used for ach_29 (enchant_level_30): track previous enchant_item stat per player
-    private final Map<UUID, Integer> lastEnchantItemStats = new HashMap<>();
+    // ONLY used for ach_29 (enchant_level_30): prevent re-triggering until next enchant.
+    private final Map<UUID, Boolean> lastEnchantProcessed = new HashMap<>();
 
     public AchievementManager() {
         registerDefaultAchievements();
@@ -195,7 +192,6 @@ public class AchievementManager {
 
     private void checkPlayer(ServerPlayerEntity player, Project3State state) {
         UUID uuid = player.getUuid();
-        int previousExperienceLevel = lastExperienceLevels.getOrDefault(uuid, player.experienceLevel);
 
         Set<String> completed = state.getCompletedAchievements(uuid);
 
@@ -223,22 +219,17 @@ public class AchievementManager {
             }
 
             boolean triggered;
-            // This trigger needs the experience level from before enchanting, so it
-            // cannot use the generic cumulative-stat path.
-            // The enchant_item stat access is done lazily here (not at the top of checkPlayer)
-            // to avoid triggering advancement tracker init on every tick for all players.
+            // This trigger uses a mixin (MixinEnchantmentScreenHandler) that stores the
+            // player's level at the moment they took an enchanted item. We read that flag
+            // instead of using the advancement-tracker-triggering stat system.
             if (achievement.getTrigger().getType() == AchievementTrigger.Type.CUSTOM
                     && achievement.getTrigger().getTarget().equals("enchant_level_30")) {
-                int enchantItemStat = 0;
-                try {
-                    enchantItemStat = player.getStatHandler().getStat(net.minecraft.stat.Stats.CUSTOM.getOrCreateStat(
-                            net.minecraft.util.Identifier.of("minecraft", "enchant_item")));
-                } catch (Exception e) {
-                    LOGGER.warn("Could not read enchant_item stat for {}: {}", player.getName().getString(), e.getMessage());
+                int enchantLevel = state.getPlayerEnchantLevelAtTake(uuid);
+                triggered = enchantLevel >= 30 && !lastEnchantProcessed.getOrDefault(uuid, false);
+                if (triggered || enchantLevel > 0) {
+                    state.clearPlayerEnchantLevelAtTake(uuid);
+                    lastEnchantProcessed.put(uuid, true);
                 }
-                int previousEnchantItemStat = lastEnchantItemStats.getOrDefault(uuid, enchantItemStat);
-                triggered = previousExperienceLevel >= 30 && enchantItemStat > previousEnchantItemStat;
-                lastEnchantItemStats.put(uuid, enchantItemStat);
             } else if (achievement.getTrigger().isStatCumulative()) {
                 Integer baseline = state.getAchievementBaseline(player.getUuid(), id);
                 int currentValue = achievement.getTrigger().getCurrentValue(player);
@@ -257,7 +248,6 @@ public class AchievementManager {
             }
         }
 
-        lastExperienceLevels.put(uuid, player.experienceLevel);
     }
 
     private int getLevelReward(int questNum, net.minecraft.world.World world) {

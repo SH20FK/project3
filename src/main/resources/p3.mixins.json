@@ -9,7 +9,8 @@
     "MixinMerchantResultSlot",
     "MixinServerPlayerEntity",
     "MixinPlayerListS2CPacketEntry",
-    "MixinJukeboxBlock"
+    "MixinJukeboxBlock",
+    "MixinEnchantmentScreenHandler"
   ],
   "injectors": {
     "defaultRequire": 1
