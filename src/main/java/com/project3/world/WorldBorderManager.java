@@ -287,13 +287,13 @@ public final class WorldBorderManager {
 
         // Subtle sound cues (sparingly)
         if (rand.nextInt(100) == 0) {
-            world.playSound(null, player.getBlockPos(),
-                    SoundEvents.AMBIENT_CRIMSON_FOREST_LOOP,
+            world.playSound(null, player.getX(), player.getY(), player.getZ(),
+                    SoundEvents.AMBIENT_CRIMSON_FOREST_LOOP.value(),
                     SoundCategory.MASTER, 0.3f, 0.8f + rand.nextFloat() * 0.4f);
         }
         if (rand.nextInt(200) == 0) {
-            world.playSound(null, player.getBlockPos(),
-                    SoundEvents.AMBIENT_SOUL_SAND_VALLEY_LOOP,
+            world.playSound(null, player.getX(), player.getY(), player.getZ(),
+                    SoundEvents.AMBIENT_SOUL_SAND_VALLEY_LOOP.value(),
                     SoundCategory.MASTER, 0.2f, 0.5f + rand.nextFloat() * 0.5f);
         }
     }
