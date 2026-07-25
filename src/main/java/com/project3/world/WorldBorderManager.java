@@ -39,10 +39,10 @@ public final class WorldBorderManager {
                 border.setCenter(0.0, 0.0);
                 border.setSize(5.9999968E7);
             } else {
-                // Season started: center at spawn, size 16000 (calibration target)
+                // Season started: center at spawn, invisible border at 16k
                 border.setCenter(spawnX, spawnZ);
-                border.setWarningBlocks(3);
-                border.setSafeZone(1.0);
+                border.setWarningBlocks(0);
+                border.setSafeZone(0);
                 border.setSize(BORDER_DIAMETER);
             }
         }
@@ -100,8 +100,10 @@ public final class WorldBorderManager {
             spawn = new BlockPos(0, spawn.getY(), 0);
         }
         
-        int topY = overworld.getTopY(net.minecraft.world.Heightmap.Type.MOTION_BLOCKING, spawn.getX(), spawn.getZ());
-        double spawnY = Math.max(overworld.getBottomY() + 2, topY);
+        // Use WORLD_SURFACE heightmap to find the ground and place player 1 block above it
+        BlockPos surfacePos = overworld.getTopPosition(net.minecraft.world.Heightmap.Type.WORLD_SURFACE,
+                new BlockPos((int)spawnX, 0, (int)spawnZ));
+        double spawnY = surfacePos.getY() + 1.0;
         player.teleport(overworld, spawnX, spawnY, spawnZ,
                 java.util.Set.of(), player.getYaw(), player.getPitch(), true);
 
