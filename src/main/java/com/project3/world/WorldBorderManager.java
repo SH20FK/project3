@@ -41,8 +41,8 @@ public final class WorldBorderManager {
             } else {
                 // Season started: center at spawn, invisible border at 16k
                 border.setCenter(spawnX, spawnZ);
-                border.setWarningBlocks(0);
-                border.setSafeZone(0);
+                border.setWarningBlocks(3);
+                border.setSafeZone(1.0);
                 border.setSize(BORDER_DIAMETER);
             }
         }
