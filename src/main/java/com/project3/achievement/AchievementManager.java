@@ -195,27 +195,20 @@ public class AchievementManager {
     private void checkPlayer(ServerPlayerEntity player, Project3State state) {
         UUID uuid = player.getUuid();
         int previousExperienceLevel = lastExperienceLevels.getOrDefault(uuid, player.experienceLevel);
-        int enchantItemStat = player.getStatHandler().getStat(net.minecraft.stat.Stats.CUSTOM.getOrCreateStat(
-                net.minecraft.util.Identifier.of("minecraft", "enchant_item")));
+
+        // Guard: getStat() may trigger advancement tracker init on first access
+        // in Minecraft 1.21.11, which can crash if advancement data is not ready.
+        int enchantItemStat = 0;
+        try {
+            enchantItemStat = player.getStatHandler().getStat(net.minecraft.stat.Stats.CUSTOM.getOrCreateStat(
+                    net.minecraft.util.Identifier.of("minecraft", "enchant_item")));
+        } catch (Exception e) {
+            LOGGER.warn("Could not read enchant_item stat for {}: {}", player.getName().getString(), e.getMessage());
+        }
         int previousEnchantItemStat = lastEnchantItemStats.getOrDefault(uuid, enchantItemStat);
         boolean enchantedAtLevelThirty = previousExperienceLevel >= 30 && enchantItemStat > previousEnchantItemStat;
 
         Set<String> completed = state.getCompletedAchievements(uuid);
-
-        // Debug: log state for ach_01 when season is active
-        if (state.isSeasonStarted() && !completed.contains("ach_01")) {
-            boolean hasLog = false;
-            for (int i = 0; i < player.getInventory().size(); i++) {
-                var stack = player.getInventory().getStack(i);
-                if (!stack.isEmpty() && stack.isIn(net.minecraft.registry.tag.ItemTags.LOGS)) {
-                    hasLog = true;
-                    break;
-                }
-            }
-            if (hasLog) {
-                LOGGER.info("[ach_01] Player {} has logs in inventory — achievement should trigger on next check", player.getName().getString());
-            }
-        }
 
         // Fix #45: guard against out-of-bounds achievement index
         int currentIndex = state.getCurrentAchievementIndex(player.getUuid());
