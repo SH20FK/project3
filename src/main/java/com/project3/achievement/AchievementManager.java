@@ -202,6 +202,21 @@ public class AchievementManager {
 
         Set<String> completed = state.getCompletedAchievements(uuid);
 
+        // Debug: log state for ach_01 when season is active
+        if (state.isSeasonStarted() && !completed.contains("ach_01")) {
+            boolean hasLog = false;
+            for (int i = 0; i < player.getInventory().size(); i++) {
+                var stack = player.getInventory().getStack(i);
+                if (!stack.isEmpty() && stack.isIn(net.minecraft.registry.tag.ItemTags.LOGS)) {
+                    hasLog = true;
+                    break;
+                }
+            }
+            if (hasLog) {
+                LOGGER.info("[ach_01] Player {} has logs in inventory — achievement should trigger on next check", player.getName().getString());
+            }
+        }
+
         // Fix #45: guard against out-of-bounds achievement index
         int currentIndex = state.getCurrentAchievementIndex(player.getUuid());
         if (currentIndex > achievements.size()) {
@@ -341,11 +356,11 @@ public class AchievementManager {
         player.removeStatusEffect(net.minecraft.entity.effect.StatusEffects.SLOWNESS);
         player.removeStatusEffect(net.minecraft.entity.effect.StatusEffects.WEAKNESS);
 
-        // Permanent Speed I and Luck as reward
+        // Permanent Speed I and Luck as reward (hidden from inventory)
         player.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(
-                net.minecraft.entity.effect.StatusEffects.SPEED, -1, 0, false, false));
+                net.minecraft.entity.effect.StatusEffects.SPEED, -1, 0, false, false, false));
         player.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(
-                net.minecraft.entity.effect.StatusEffects.LUCK, -1, 0, false, false));
+                net.minecraft.entity.effect.StatusEffects.LUCK, -1, 0, false, false, false));
 
         // Max happiness
         com.project3.player.PlayerStateManager.grantHappiness(player, state, 120000L);
