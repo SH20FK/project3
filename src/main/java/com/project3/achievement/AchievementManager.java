@@ -34,6 +34,10 @@ public class AchievementManager {
     private final List<AchievementDefinition> achievements = new ArrayList<>();
     private final Map<UUID, AchievementSyncPayload> lastSentPayloads = new java.util.concurrent.ConcurrentHashMap<>();
     private int tickAccum = 0;
+    // Enchanting consumes levels before the statistic is observed on the next server tick.
+    // Keep the previous tick's values to validate that the enchant was selected at level 30.
+    private final Map<UUID, Integer> lastExperienceLevels = new HashMap<>();
+    private final Map<UUID, Integer> lastEnchantItemStats = new HashMap<>();
 
     public AchievementManager() {
         registerDefaultAchievements();
@@ -45,18 +49,18 @@ public class AchievementManager {
         // Overworld achievements (1-75)
         addAchievement("ach_01", "Оно парит", "Добыть 1 блок любой древесины.", AchievementRarity.COMMON, "custom:any_log:1");
         addAchievement("ach_02", "Это просто", "Открыть инвентарь.", AchievementRarity.COMMON, "custom:open_inventory:1");
-        addAchievement("ach_03", "Дело мастера боится", "Создать верстак.", AchievementRarity.COMMON, "craft_item:minecraft:crafting_table:1");
+        addAchievement("ach_03", "Дело мастера боится", "Создать верстак.", AchievementRarity.COMMON, "inventory_item:minecraft:crafting_table:1");
         addAchievement("ach_04", "Работа мечты", "Добыть 15 блоков булыжника.", AchievementRarity.COMMON, "inventory_item:minecraft:cobblestone:15");
-        addAchievement("ach_05", "Фулл-хаус", "Получить все виды инструментов из любого материала.", AchievementRarity.UNCOMMON, "custom:all_tools:1");
+        addAchievement("ach_05", "Фулл-хаус", "Получить меч, лопату, кирку, топор, мотыгу и железное копьё.", AchievementRarity.UNCOMMON, "custom:all_tools:1");
         addAchievement("ach_06", "Знаток сплавов", "Добыть 10 ед. необработанной меди.", AchievementRarity.COMMON, "inventory_item:minecraft:raw_copper:10");
         addAchievement("ach_07", "Большой чёрный уголь", "Создать или получить угольный блок.", AchievementRarity.RARE, "inventory_item:minecraft:coal_block:1", "burn_item");
         addAchievement("ach_08", "Наконец-то", "Съесть любую пищу.", AchievementRarity.COMMON, "custom:eat_food:1");
-        addAchievement("ach_09", "Неуязвимый", "Создать щит.", AchievementRarity.UNCOMMON, "craft_item:minecraft:shield:1");
+        addAchievement("ach_09", "Неуязвимый", "Создать щит.", AchievementRarity.UNCOMMON, "inventory_item:minecraft:shield:1");
         addAchievement("ach_10", "Главный монстр", "Победить 10 враждебных существ.", AchievementRarity.COMMON, "custom:kill_monster:10");
         addAchievement("ach_11", "Я ничего не трогал", "Переплавить дроблёный сланец в глубинный сланец.", AchievementRarity.UNCOMMON, "custom:smelt_cobbled_deepslate:1");
         addAchievement("ach_12", "Увеличение запаса маны", "Добыть 64 ед. лазурита.", AchievementRarity.COMMON, "inventory_item:minecraft:lapis_lazuli:64");
-        addAchievement("ach_13", "Да как его призвать...", "Создать 32 факела из красного камня.", AchievementRarity.COMMON, "craft_item:minecraft:redstone_torch:32");
-        addAchievement("ach_14", "Я это точно использую", "Создать алмазную мотыгу.", AchievementRarity.UNCOMMON, "craft_item:minecraft:diamond_hoe:1");
+        addAchievement("ach_13", "Да как его призвать...", "Создать 32 факела из красного камня.", AchievementRarity.COMMON, "inventory_item:minecraft:redstone_torch:32");
+        addAchievement("ach_14", "Я это точно использую", "Создать алмазную мотыгу.", AchievementRarity.UNCOMMON, "inventory_item:minecraft:diamond_hoe:1");
         addAchievement("ach_15", "Кипяток", "Набрать ведро лавы.", AchievementRarity.COMMON, "inventory_item:minecraft:lava_bucket:1");
         addAchievement("ach_16", "Тут нужен клининг", "Найти заброшенную шахту.", AchievementRarity.UNCOMMON, "custom:find_mineshaft:1");
         addAchievement("ach_17", "Старик", "Прокатиться в вагонетке.", AchievementRarity.COMMON, "custom:ride_minecart:1");
@@ -85,8 +89,8 @@ public class AchievementManager {
         addAchievement("ach_40", "Корень проблемы", "Добыть свисающие корни.", AchievementRarity.COMMON, "inventory_item:minecraft:hanging_roots:1");
         addAchievement("ach_41", "Ставлю на этом крест", "Найти зарытый клад.", AchievementRarity.UNCOMMON, "custom:open_buried_treasure:1");
         addAchievement("ach_42", "Сломанный телефон", "Добыть осколок эха.", AchievementRarity.RARE, "inventory_item:minecraft:echo_shard:1");
-        addAchievement("ach_43", "Пир для косолапого", "Создать блок мёда.", AchievementRarity.UNCOMMON, "craft_item:minecraft:honey_block:1");
-        addAchievement("ach_44", "Братья наши большие", "Создать волчью броню.", AchievementRarity.UNCOMMON, "craft_item:minecraft:wolf_armor:1");
+        addAchievement("ach_43", "Пир для косолапого", "Создать блок мёда.", AchievementRarity.UNCOMMON, "inventory_item:minecraft:honey_block:1");
+        addAchievement("ach_44", "Братья наши большие", "Создать волчью броню.", AchievementRarity.UNCOMMON, "inventory_item:minecraft:wolf_armor:1");
         addAchievement("ach_45", "Утри слёзы", "Добыть плачущий обсидиан.", AchievementRarity.UNCOMMON, "inventory_item:minecraft:crying_obsidian:1");
         addAchievement("ach_46", "Машиностроение", "Скрафтить все виды рельсов и вагонетку.", AchievementRarity.RARE, "custom:craft_all_rails_minecarts:1");
         addAchievement("ach_47", "Заслуженная награда", "Открыть хранилище ключом испытаний.", AchievementRarity.EPIC, "custom:open_trial_chamber:1");
@@ -96,7 +100,7 @@ public class AchievementManager {
         addAchievement("ach_51", "Прикосновение Бога", "Получить инструмент с зачарованием «Шёлковое касание».", AchievementRarity.EPIC, "custom:silk_touch:1");
         addAchievement("ach_52", "Последний писк моды", "Надеть броню, украшенную четырьмя разными кузнечными шаблонами.", AchievementRarity.EPIC, "custom:trim_different_armor:1");
         addAchievement("ach_53", "Добротный улов", "Поймать все виды рыб и аксолотля в ведро.", AchievementRarity.RARE, "custom:all_fish_buckets:1");
-        addAchievement("ach_54", "Болванка на рукояти", "Создать булаву.", AchievementRarity.UNCOMMON, "craft_item:minecraft:mace:1");
+        addAchievement("ach_54", "Болванка на рукояти", "Создать булаву.", AchievementRarity.UNCOMMON, "inventory_item:minecraft:mace:1");
         addAchievement("ach_55", "Лучшая мастерская", "Получить инструмент с зачарованием «Починка».", AchievementRarity.RARE, "custom:has_mending:1");
         addAchievement("ach_56", "Разнорабочий", "Поторговать с сельскими жителями всех профессий.", AchievementRarity.EPIC, "custom:trade_all_professions:1");
         addAchievement("ach_57", "Не зельевар", "Выпить любое зелье.", AchievementRarity.COMMON, "custom:use_any_potion:1");
@@ -189,7 +193,14 @@ public class AchievementManager {
     }
 
     private void checkPlayer(ServerPlayerEntity player, Project3State state) {
-        Set<String> completed = state.getCompletedAchievements(player.getUuid());
+        UUID uuid = player.getUuid();
+        int previousExperienceLevel = lastExperienceLevels.getOrDefault(uuid, player.experienceLevel);
+        int enchantItemStat = player.getStat(net.minecraft.stat.Stats.CUSTOM.getOrCreateStat(
+                net.minecraft.util.Identifier.of("minecraft", "enchant_item")));
+        int previousEnchantItemStat = lastEnchantItemStats.getOrDefault(uuid, enchantItemStat);
+        boolean enchantedAtLevelThirty = previousExperienceLevel >= 30 && enchantItemStat > previousEnchantItemStat;
+
+        Set<String> completed = state.getCompletedAchievements(uuid);
 
         // Fix #45: guard against out-of-bounds achievement index
         int currentIndex = state.getCurrentAchievementIndex(player.getUuid());
@@ -215,7 +226,12 @@ public class AchievementManager {
             }
 
             boolean triggered;
-            if (achievement.getTrigger().isStatCumulative()) {
+            // This trigger needs the experience level from before enchanting, so it
+            // cannot use the generic cumulative-stat path.
+            if (achievement.getTrigger().getType() == AchievementTrigger.Type.CUSTOM
+                    && achievement.getTrigger().getTarget().equals("enchant_level_30")) {
+                triggered = enchantedAtLevelThirty;
+            } else if (achievement.getTrigger().isStatCumulative()) {
                 Integer baseline = state.getAchievementBaseline(player.getUuid(), id);
                 int currentValue = achievement.getTrigger().getCurrentValue(player);
                 if (baseline == null) {
@@ -232,6 +248,9 @@ public class AchievementManager {
                 completeAchievement(player, state, achievement);
             }
         }
+
+        lastExperienceLevels.put(uuid, player.experienceLevel);
+        lastEnchantItemStats.put(uuid, enchantItemStat);
     }
 
     private int getLevelReward(int questNum, net.minecraft.world.World world) {

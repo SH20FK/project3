@@ -106,7 +106,9 @@ public final class PlayerEventHandler {
         long happiness = state.getHappinessTicksLeft(player.getUuid());
         if (happiness > 0) {
             state.setHappinessTicksLeft(player.getUuid(), happiness - 1);
-            player.addStatusEffect(new StatusEffectInstance(ModRegistries.HAPPINESS_EFFECT, 40, 0, true, false, true));
+            // The persistent state owns the real timer. An infinite vanilla effect intentionally
+            // renders as **:** instead of leaking the remaining duration to the HUD.
+            player.addStatusEffect(new StatusEffectInstance(ModRegistries.HAPPINESS_EFFECT, -1, 0, true, false, true));
             state.setGloomPermanent(player.getUuid(), false);
             state.setGloomTicksLeft(player.getUuid(), 0L);
             if (state.getGloomDepthTicks(player.getUuid()) > 0) {
@@ -160,7 +162,8 @@ public final class PlayerEventHandler {
             state.setGloomPermanent(player.getUuid(), true);
             state.setGloomTicksLeft(player.getUuid(), 0L);
             state.addGloomDepthTicks(player.getUuid(), 1L);
-            player.addStatusEffect(new StatusEffectInstance(ModRegistries.GLOOM_EFFECT, 40, 0, true, false, true));
+            // See Happiness above: hide the state timer in the vanilla effect widget.
+            player.addStatusEffect(new StatusEffectInstance(ModRegistries.GLOOM_EFFECT, -1, 0, true, false, true));
         }
 
         if (state.isUnnamedEffectActive(player.getUuid())) {

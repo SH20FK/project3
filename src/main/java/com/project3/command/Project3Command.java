@@ -472,20 +472,23 @@ public class Project3Command {
             player.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, 1200, 4, false, false)); // Immortality/high resistance during calibration
         }
 
-        // System boot-up status logs in chat
-        server.getPlayerManager().broadcast(Text.literal("§7[Система] §aЗапускаю систему... OK"), false);
-        server.getPlayerManager().broadcast(Text.literal("§7[Система] §aПодготавливаю временную зону... OK"), false);
-        server.getPlayerManager().broadcast(Text.literal("§7[Система] §aЦентрирую начальную точку... OK"), false);
+        // System boot-up status logs are deliberately staged for the cinematic sequence.
+        Project3Mod.schedule(0, () -> server.getPlayerManager().broadcast(
+                Text.literal("§7[Система] §aЗапускаю систему... OK"), false));
+        Project3Mod.schedule(20, () -> server.getPlayerManager().broadcast(
+                Text.literal("§7[Система] §aПодготавливаю временную зону... OK"), false));
+        Project3Mod.schedule(40, () -> server.getPlayerManager().broadcast(
+                Text.literal("§7[Система] §aЦентрирую начальную точку... OK"), false));
 
         // Schedule welcome messages and border expansion
-        Project3Mod.schedule(0, () -> {
+        Project3Mod.schedule(60, () -> {
             Text sender = Text.literal("[Система]").styled(style -> style.withColor(0xAAAAAA).withItalic(true));
             Text msg = Text.literal(": Добро пожаловать в мир project3 !").styled(style -> style.withColor(0xFFFFFF).withItalic(false));
             Text combined = Text.empty().append(sender).append(msg);
             server.getPlayerManager().broadcast(combined, false);
         });
 
-        Project3Mod.schedule(40, () -> {
+        Project3Mod.schedule(100, () -> {
             Text sender = Text.literal("[Система]").styled(style -> style.withColor(0xAAAAAA).withItalic(true));
             Text msg = Text.literal(": Приятной игры!").styled(style -> style.withColor(0xFFFFFF).withItalic(false));
             Text combined = Text.empty().append(sender).append(msg);

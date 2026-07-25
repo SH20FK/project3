@@ -143,8 +143,9 @@ public class Project3Mod implements ModInitializer {
             int blockX = cx * 16;
             int blockZ = cz * 16;
 
-            int absX = Math.abs(blockX);
-            int absZ = Math.abs(blockZ);
+            BlockPos spawnPos = world.getSpawnPoint().getPos();
+            int absX = Math.abs(blockX - spawnPos.getX());
+            int absZ = Math.abs(blockZ - spawnPos.getZ());
 
             // Producers spawn in the 15000-16000 zone (approach to the wall)
             int distX = absX - 15_000;
@@ -190,21 +191,25 @@ public class Project3Mod implements ModInitializer {
 
         // ── Server tick ──────────────────────────────────────────────────────
         ServerTickEvents.END_SERVER_TICK.register(server -> {
-            List<ScheduledTask> remaining = new ArrayList<>();
+            // Take a snapshot: tasks created by an action must not lose a tick and
+            // execute immediately in the same server tick.
+            List<ScheduledTask> pending = new ArrayList<>();
             ScheduledTask task;
             while ((task = SCHEDULED_TASKS.poll()) != null) {
-                task.remaining--;
-                if (task.remaining <= 0) {
+                pending.add(task);
+            }
+            for (ScheduledTask scheduledTask : pending) {
+                scheduledTask.remaining--;
+                if (scheduledTask.remaining <= 0) {
                     try {
-                        task.action.run();
+                        scheduledTask.action.run();
                     } catch (Exception e) {
                         LOGGER.error("Error executing scheduled task", e);
                     }
                 } else {
-                    remaining.add(task);
+                    SCHEDULED_TASKS.add(scheduledTask);
                 }
             }
-            SCHEDULED_TASKS.addAll(remaining);
 
             try {
                 PhantomReplicator.tickActiveNpcs(server);
@@ -259,7 +264,9 @@ public class Project3Mod implements ModInitializer {
 
             boolean isFlintSteel = heldStack.isOf(Items.FLINT_AND_STEEL) || heldStack.isOf(Items.FIRE_CHARGE);
             if (isFlintSteel && clickedBlock == Blocks.OBSIDIAN) {
-                boolean locked = !serverPlayer.isCreative() && !overlordCompleted && !state.isNetherForceUnlocked();
+                boolean locked = !serverPlayer.isCreative() && !overlordCompleted
+                        && (!state.isSeasonStarted() || com.project3.world.CalibrationManager.calibrationTicksLeft > 0
+                        || !state.isNetherForceUnlocked());
                 if (locked) {
                     sw.createExplosion(null, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 4.0f, false, World.ExplosionSourceType.NONE);
                     serverPlayer.damage(sw, sw.getDamageSources().explosion(null, null), 4.0f);
