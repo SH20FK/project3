@@ -58,6 +58,10 @@ public final class ClientNetworkHandlers {
             context.client().execute(() -> GloomVoidClientHandler.triggerShaderGlitch(context.client()));
         });
 
+        ClientPlayNetworking.registerGlobalReceiver(BorderEffectPayload.ID, (payload, context) -> {
+            context.client().execute(() -> BorderVoidHandler.setViolationTicks(payload.tickCount()));
+        });
+
         ClientPlayNetworking.registerGlobalReceiver(SpawnPhantomPayload.ID, (payload, context) -> {
             java.util.concurrent.CompletableFuture.supplyAsync(() -> {
                 try {

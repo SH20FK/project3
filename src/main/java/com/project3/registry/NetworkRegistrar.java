@@ -30,6 +30,7 @@ public final class NetworkRegistrar {
         PayloadTypeRegistry.playS2C().register(FogTargetPayload.ID,         FogTargetPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(ParanoiaPayload.ID,          ParanoiaPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(DreadPayload.ID,             DreadPayload.CODEC);
+        PayloadTypeRegistry.playS2C().register(BorderEffectPayload.ID,      BorderEffectPayload.CODEC);
 
         // ── Register Payloads (C2S) ──────────────────────────────────────────
         PayloadTypeRegistry.playC2S().register(OpenInventoryPayload.ID,     OpenInventoryPayload.CODEC);
