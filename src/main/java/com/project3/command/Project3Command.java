@@ -8,6 +8,7 @@ import com.project3.achievement.AchievementDefinition;
 import com.project3.achievement.AchievementManager;
 import com.project3.achievement.AchievementRarity;
 import com.project3.state.Project3State;
+import com.project3.world.WorldBorderManager;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.block.BlockState;
 import net.minecraft.command.CommandRegistryAccess;
@@ -128,6 +129,12 @@ public class Project3Command {
                                 }))
                 )
                 .then(buildAchievementCommand())
+                .then(CommandManager.literal("border")
+                        .then(CommandManager.literal("show")
+                                .executes(ctx -> executeBorderShow(ctx.getSource())))
+                        .then(CommandManager.literal("nearest")
+                                .executes(ctx -> executeBorderNearest(ctx.getSource())))
+                )
         );
 
     }
@@ -722,4 +729,121 @@ public class Project3Command {
         }
     }
 
+
+    // ─── border show ─────────────────────────────────────────────────────────
+
+    private static int executeBorderShow(ServerCommandSource source) {
+        try {
+            ServerPlayerEntity player = source.getPlayerOrThrow();
+            ServerWorld world = (ServerWorld) player.getEntityWorld();
+            if (world.getRegistryKey() != net.minecraft.world.World.OVERWORLD) {
+                source.sendFeedback(() -> Text.literal("Команда работает только в обычном мире.").formatted(Formatting.RED), false);
+                return 0;
+            }
+
+            BlockPos spawnPos = world.getSpawnPoint().getPos();
+            double spawnX = spawnPos.getX() + 0.5;
+            double spawnZ = spawnPos.getZ() + 0.5;
+
+            // Spawn a ring of particles along the border in all directions
+            int points = 72;
+            for (int i = 0; i < points; i++) {
+                double angle = Math.PI * 2 * i / points;
+                double nx = Math.cos(angle);
+                double nz = Math.sin(angle);
+
+                double maxR = WorldBorderManager.getMaxRadius(spawnX, spawnZ,
+                        spawnX + nx * 20000.0, spawnZ + nz * 20000.0);
+                double bx = spawnX + nx * maxR;
+                double bz = spawnZ + nz * maxR;
+
+                BlockPos surfacePos = world.getTopPosition(
+                        net.minecraft.world.Heightmap.Type.WORLD_SURFACE,
+                        new BlockPos((int) bx, 0, (int) bz));
+                double by = surfacePos.getY() + 1.0;
+
+                world.spawnParticles(
+                        ParticleTypes.FLAME,
+                        bx, by, bz,
+                        1, 0.1, 0.1, 0.1, 0.01
+                );
+            }
+
+            source.sendFeedback(() -> Text.literal("Граница отмечена огненными частицами (исчезнут через 5 сек).").formatted(Formatting.GREEN), false);
+            return 1;
+        } catch (Exception e) {
+            source.sendFeedback(() -> Text.literal("Эту команду может использовать только игрок.").formatted(Formatting.RED), false);
+            return 0;
+        }
+    }
+
+    // ─── border nearest ──────────────────────────────────────────────────────
+
+    private static int executeBorderNearest(ServerCommandSource source) {
+        try {
+            ServerPlayerEntity player = source.getPlayerOrThrow();
+            ServerWorld world = (ServerWorld) player.getEntityWorld();
+            if (world.getRegistryKey() != net.minecraft.world.World.OVERWORLD) {
+                source.sendFeedback(() -> Text.literal("Команда работает только в обычном мире.").formatted(Formatting.RED), false);
+                return 0;
+            }
+
+            BlockPos spawnPos = world.getSpawnPoint().getPos();
+            double spawnX = spawnPos.getX() + 0.5;
+            double spawnZ = spawnPos.getZ() + 0.5;
+
+            double px = player.getX();
+            double pz = player.getZ();
+
+            double dx = px - spawnX;
+            double dz = pz - spawnZ;
+            double dist = Math.sqrt(dx * dx + dz * dz);
+            double angle = Math.atan2(dz, dx);
+
+            // Find distance to border in the player's current direction
+            double maxR = WorldBorderManager.getMaxRadius(spawnX, spawnZ, px, pz);
+            double remaining = maxR - dist;
+
+            source.sendFeedback(() -> Text.literal(String.format(
+                    "§6=== Граница ===\n" +
+                    "§7Расстояние от спавна: §f%.0f блоков\n" +
+                    "§7Макс. радиус в этом направлении: §f%.0f блоков\n" +
+                    "§7До границы: §e%.0f блоков\n" +
+                    "§7Направление: §b%s (%.0f°)",
+                    dist, maxR, remaining,
+                    angleToString(angle), Math.toDegrees(angle)
+            )), false);
+
+            // Teleport player to the border edge in their current direction
+            if (remaining > 0) {
+                double tx = spawnX + dx / dist * maxR;
+                double tz = spawnZ + dz / dist * maxR;
+                BlockPos surfacePos = world.getTopPosition(
+                        net.minecraft.world.Heightmap.Type.WORLD_SURFACE,
+                        new BlockPos((int) tx, 0, (int) tz));
+                double ty = surfacePos.getY() + 1.0;
+                player.teleport(world, tx, ty, tz, java.util.Set.of(), player.getYaw(), player.getPitch(), true);
+                source.sendFeedback(() -> Text.literal("Телепортированы к ближайшей точке границы.").formatted(Formatting.GREEN), false);
+            } else {
+                source.sendFeedback(() -> Text.literal("Вы уже за границей!").formatted(Formatting.RED), false);
+            }
+
+            return 1;
+        } catch (Exception e) {
+            source.sendFeedback(() -> Text.literal("Эту команду может использовать только игрок.").formatted(Formatting.RED), false);
+            return 0;
+        }
+    }
+
+    private static String angleToString(double angle) {
+        double deg = Math.toDegrees(angle);
+        if (deg < -157.5 || deg >= 157.5) return "Запад";
+        if (deg < -112.5) return "Юго-Запад";
+        if (deg < -67.5) return "Юг";
+        if (deg < -22.5) return "Юго-Восток";
+        if (deg < 22.5) return "Восток";
+        if (deg < 67.5) return "Северо-Восток";
+        if (deg < 112.5) return "Север";
+        return "Северо-Запад";
+    }
 }

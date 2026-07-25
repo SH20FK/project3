@@ -71,9 +71,6 @@ public class Project3State extends PersistentState {
     private boolean netherForceUnlocked = false;
     private boolean endForceUnlocked = false;
 
-    /** Tracks the player's experience level at the moment they enchanted an item (0 = no enchant detected). */
-    private final Map<UUID, Integer> playerEnchantLevelAtTake = new HashMap<>();
-
     public Project3State() {}
 
     // ─── Accessors ───────────────────────────────────────────────────────────
@@ -210,7 +207,6 @@ public class Project3State extends PersistentState {
         playerGloomDepthTicks.clear();
         playerTradedProfessions.clear();
         playerLastNetherPortalPos.clear();
-        playerEnchantLevelAtTake.clear();
         netherForceUnlocked = false;
         endForceUnlocked = false;
         markDirty();
@@ -229,23 +225,6 @@ public class Project3State extends PersistentState {
 
     public String getLastNetherPortalPos(UUID uuid) {
         return playerLastNetherPortalPos.get(uuid);
-    }
-
-    /** Called by MixinEnchantmentScreenHandler when a player takes an enchanted item. */
-    public void setPlayerEnchantedAtHighLevel(UUID uuid, int levelAtEnchant) {
-        playerEnchantLevelAtTake.put(uuid, levelAtEnchant);
-        markDirty();
-    }
-
-    /** Returns the player's experience level at the moment they last enchanted (0 if no enchant detected). */
-    public int getPlayerEnchantLevelAtTake(UUID uuid) {
-        return playerEnchantLevelAtTake.getOrDefault(uuid, 0);
-    }
-
-    /** Clears the enchant flag (called after processing in achievement check). */
-    public void clearPlayerEnchantLevelAtTake(UUID uuid) {
-        playerEnchantLevelAtTake.put(uuid, 0);
-        markDirty();
     }
 
 
@@ -332,10 +311,6 @@ public class Project3State extends PersistentState {
         NbtCompound portalsNbt = new NbtCompound();
         playerLastNetherPortalPos.forEach((uuid, val) -> portalsNbt.putString(uuid.toString(), val));
         nbt.put("last_nether_portal_pos", portalsNbt);
-
-        NbtCompound enchantLevelNbt = new NbtCompound();
-        playerEnchantLevelAtTake.forEach((uuid, val) -> enchantLevelNbt.putInt(uuid.toString(), val));
-        nbt.put("enchant_level_at_take", enchantLevelNbt);
 
         com.project3.event.NetherCorruptionEvent.writeNbt(nbt, registries);
 
@@ -456,13 +431,6 @@ public class Project3State extends PersistentState {
         portalsNbt.getKeys().forEach(key -> {
             try {
                 state.playerLastNetherPortalPos.put(UUID.fromString(key), portalsNbt.getString(key).orElse(""));
-            } catch (IllegalArgumentException ignored) {}
-        });
-
-        NbtCompound enchantLevelNbt = nbt.getCompound("enchant_level_at_take").orElseGet(NbtCompound::new);
-        enchantLevelNbt.getKeys().forEach(key -> {
-            try {
-                state.playerEnchantLevelAtTake.put(UUID.fromString(key), enchantLevelNbt.getInt(key).orElse(0));
             } catch (IllegalArgumentException ignored) {}
         });
 

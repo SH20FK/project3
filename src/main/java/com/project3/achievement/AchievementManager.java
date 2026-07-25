@@ -34,8 +34,8 @@ public class AchievementManager {
     private final List<AchievementDefinition> achievements = new ArrayList<>();
     private final Map<UUID, AchievementSyncPayload> lastSentPayloads = new java.util.concurrent.ConcurrentHashMap<>();
     private int tickAccum = 0;
-    // ONLY used for ach_29 (enchant_level_30): prevent re-triggering until next enchant.
-    private final Map<UUID, Boolean> lastEnchantProcessed = new HashMap<>();
+    // Track enchant_item stat for ach_29 (only checked when player reaches level 30)
+    private final Map<UUID, Integer> lastEnchantItemStats = new HashMap<>();
 
     public AchievementManager() {
         registerDefaultAchievements();
@@ -219,16 +219,24 @@ public class AchievementManager {
             }
 
             boolean triggered;
-            // This trigger uses a mixin (MixinEnchantmentScreenHandler) that stores the
-            // player's level at the moment they took an enchanted item. We read that flag
-            // instead of using the advancement-tracker-triggering stat system.
+            // ach_29: Detect enchanting at level 30+ via the enchant_item statistic.
+            // We only call getStat() when the player is already level 30+ to avoid
+            // triggering advancement tracker initialisation during server startup.
             if (achievement.getTrigger().getType() == AchievementTrigger.Type.CUSTOM
                     && achievement.getTrigger().getTarget().equals("enchant_level_30")) {
-                int enchantLevel = state.getPlayerEnchantLevelAtTake(uuid);
-                triggered = enchantLevel >= 30 && !lastEnchantProcessed.getOrDefault(uuid, false);
-                if (triggered || enchantLevel > 0) {
-                    state.clearPlayerEnchantLevelAtTake(uuid);
-                    lastEnchantProcessed.put(uuid, true);
+                if (player.experienceLevel >= 30) {
+                    try {
+                        int current = player.getStatHandler().getStat(net.minecraft.stat.Stats.CUSTOM.getOrCreateStat(
+                                net.minecraft.util.Identifier.of("minecraft", "enchant_item")));
+                        int previous = lastEnchantItemStats.getOrDefault(uuid, current);
+                        triggered = current > previous;
+                        lastEnchantItemStats.put(uuid, current);
+                    } catch (Exception e) {
+                        LOGGER.warn("Could not read enchant_item stat for {}: {}", player.getName().getString(), e.getMessage());
+                        triggered = false;
+                    }
+                } else {
+                    triggered = false;
                 }
             } else if (achievement.getTrigger().isStatCumulative()) {
                 Integer baseline = state.getAchievementBaseline(player.getUuid(), id);
