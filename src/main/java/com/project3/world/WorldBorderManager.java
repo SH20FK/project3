@@ -51,7 +51,7 @@ public final class WorldBorderManager {
     // ─── Noise ───────────────────────────────────────────────────────────────
 
     private static final double[] NOISE_TABLE = new double[1024];
-    private static final long SEED = 0xB0RD3R_SEED;
+    private static final long SEED = 0xB0B0B0B0B0B0L;
 
     static {
         java.util.Random rng = new java.util.Random(SEED);
