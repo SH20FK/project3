@@ -289,6 +289,13 @@ public class ActiveAchievementHud {
                 iconStack = new ItemStack(net.minecraft.item.Items.BOOK);
             }
 
+            // Dark items such as coal blocks disappear against the window texture without
+            // an independent icon slot. Draw a high-contrast slot before the item.
+            int iconX = x + 7;
+            int iconY = y + 7;
+            context.fill(iconX, iconY, iconX + 18, iconY + 18, 0xFF050505);
+            context.fill(iconX + 1, iconY + 1, iconX + 17, iconY + 17, 0xFF9A9A9A);
+            context.fill(iconX + 2, iconY + 2, iconX + 16, iconY + 16, 0xFF303030);
             context.drawItem(iconStack, x + 8, y + 8);
 
             if (targetValue > 1) {

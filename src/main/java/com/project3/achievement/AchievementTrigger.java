@@ -142,6 +142,8 @@ public class AchievementTrigger {
                 boolean hasPickaxe = false;
                 boolean hasAxe = false;
                 boolean hasHoe = false;
+                boolean hasIronSpear = false;
+                Item ironSpear = Registries.ITEM.get(Identifier.of("minecraft", "iron_spear"));
                 for (int i = 0; i < player.getInventory().size(); i++) {
                     ItemStack stack = player.getInventory().getStack(i);
                     if (stack.isEmpty()) continue;
@@ -151,8 +153,9 @@ public class AchievementTrigger {
                     else if (item.getRegistryEntry().isIn(net.minecraft.registry.tag.ItemTags.PICKAXES)) hasPickaxe = true;
                     else if (item.getRegistryEntry().isIn(net.minecraft.registry.tag.ItemTags.AXES)) hasAxe = true;
                     else if (item.getRegistryEntry().isIn(net.minecraft.registry.tag.ItemTags.HOES)) hasHoe = true;
+                    if (item == ironSpear) hasIronSpear = true;
                 }
-                yield hasSword && hasShovel && hasPickaxe && hasAxe && hasHoe;
+                yield hasSword && hasShovel && hasPickaxe && hasAxe && hasHoe && hasIronSpear;
             }
             case "smelt_cobbled_deepslate" -> {
                 yield player.getInventory().count(Items.DEEPSLATE) >= threshold;
@@ -217,9 +220,9 @@ public class AchievementTrigger {
                 }
                 yield trimmedCount >= 4;
             }
-            case "enchant_level_30" -> {
-                yield safeCustomStatCheck(player, Identifier.of("minecraft", "enchant_item"), threshold);
-            }
+            // The required level is evaluated in AchievementManager using the
+            // pre-enchant experience level and the enchant-item stat delta.
+            case "enchant_level_30" -> false;
             case "tame_cat" -> {
                 List<net.minecraft.entity.passive.CatEntity> cats = player.getEntityWorld().getEntitiesByClass(
                         net.minecraft.entity.passive.CatEntity.class,

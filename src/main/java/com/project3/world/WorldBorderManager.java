@@ -18,6 +18,10 @@ public final class WorldBorderManager {
 
     private WorldBorderManager() {}
 
+    /** Distance from the season spawn to each edge of the playable square. */
+    public static final double BORDER_RADIUS = 16_000.0;
+    /** WorldBorder#setSize uses the full width, not the radius. */
+    public static final double BORDER_DIAMETER = BORDER_RADIUS * 2.0;
     private static final int WALL_THRESHOLD = 15_950;
     private static final long WALL_MESSAGE_COOLDOWN_MS = 5_000L;
 
@@ -39,7 +43,7 @@ public final class WorldBorderManager {
                 border.setCenter(spawnX, spawnZ);
                 border.setWarningBlocks(3);
                 border.setSafeZone(1.0);
-                border.setSize(16000.0);
+                border.setSize(BORDER_DIAMETER);
             }
         }
     }
