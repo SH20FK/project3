@@ -195,7 +195,7 @@ public class AchievementManager {
     private void checkPlayer(ServerPlayerEntity player, Project3State state) {
         UUID uuid = player.getUuid();
         int previousExperienceLevel = lastExperienceLevels.getOrDefault(uuid, player.experienceLevel);
-        int enchantItemStat = player.getStat(net.minecraft.stat.Stats.CUSTOM.getOrCreateStat(
+        int enchantItemStat = player.getStatHandler().getStat(net.minecraft.stat.Stats.CUSTOM.getOrCreateStat(
                 net.minecraft.util.Identifier.of("minecraft", "enchant_item")));
         int previousEnchantItemStat = lastEnchantItemStats.getOrDefault(uuid, enchantItemStat);
         boolean enchantedAtLevelThirty = previousExperienceLevel >= 30 && enchantItemStat > previousEnchantItemStat;
