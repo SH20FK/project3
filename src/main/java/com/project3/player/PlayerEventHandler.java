@@ -8,6 +8,7 @@ import com.project3.registry.ModRegistries;
 import com.project3.state.Project3State;
 import com.project3.world.CalibrationManager;
 import com.project3.world.GloomVoidTickHandler;
+import com.project3.world.WorldBorderManager;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.effect.StatusEffectInstance;
@@ -95,6 +96,7 @@ public final class PlayerEventHandler {
             Project3Mod.LOGGER.error("Error cleaning up player data on disconnect: {}", player.getName().getString(), e);
         }
         DreadManager.onDisconnect(player.getUuid());
+        WorldBorderManager.onDisconnect(player.getUuid());
         PlayerCooldowns.onDisconnect(player.getUuid());
     }
 
