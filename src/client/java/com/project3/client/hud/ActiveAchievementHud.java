@@ -259,7 +259,9 @@ public class ActiveAchievementHud {
 
         // 1. Render active achievements panel (top-right) if data exists and panel is visible
         if (panelVisible && hasData && !currentId.isEmpty() && panelState != 0) {
-            int width = 230;
+            // Window textures are exactly TEX_W pixels wide. Drawing a wider source
+            // region wraps the texture's first pixels onto the right edge.
+            int width = TEX_W;
             int x = (int)(screenWidth - width - 5 + panelAnimOffset);
             int y = 28;
 
