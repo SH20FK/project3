@@ -22,10 +22,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * Dynamic irregular world border powered by layered noise.
  * Crossing the border triggers an escalating series of effects:
  *
- * Stage 0 (0-100 ticks, 0-5s)  — Smoke/bubble particles, creepy ambience
- * Stage 1 (100-300 ticks, 5-15s) — Fog closes in, Darkness effect
- * Stage 2 (300-450 ticks, 15-22.5s) — Blindness, Weakness, screen desaturation
- * Stage 3 (450+ ticks, 22.5-30s) — Teleport to spawn with 1 HP, food drain, Unnamed
+ * Stage 0 (0-40 ticks, 0-2s)   — Smoke/bubble particles, creepy ambience
+ * Stage 1 (40-120 ticks, 2-6s) — Fog closes in, Darkness effect
+ * Stage 2 (120-200 ticks, 6-10s) — Blindness, Weakness, screen desaturation
+ * Stage 3 (200+ ticks, 10-14s) — Teleport to spawn with 1 HP, food drain, Unnamed
  *
  * The timer NEVER resets — once you cross the line, the countdown has begun.
  */
@@ -39,11 +39,11 @@ public final class WorldBorderManager {
     public static final double BORDER_DIAMETER = (BASE_RADIUS + NOISE_AMPLITUDE) * 2.0;
     public static final long PENALTY_COOLDOWN_MS = 2_000L;
 
-    // Stages (in server ticks)
-    private static final int STAGE_1_PARTICLES   = 100;
-    private static final int STAGE_2_FOG          = 300;
-    private static final int STAGE_3_CORRUPTION   = 450;
-    private static final int STAGE_4_TELEPORT     = 600;
+    // Stages (in server ticks) — shortened for faster escalation
+    private static final int STAGE_1_PARTICLES   = 40;
+    private static final int STAGE_2_FOG          = 120;
+    private static final int STAGE_3_CORRUPTION   = 200;
+    private static final int STAGE_4_TELEPORT     = 280;
 
     /** Per-player accumulated violation ticks (never resets to 0 except on teleport). */
     private static final Map<UUID, Integer> BORDER_VIOLATION_TICKS = new ConcurrentHashMap<>();
@@ -313,12 +313,10 @@ public final class WorldBorderManager {
                                         double spawnX, double spawnZ) {
         UUID uuid = player.getUuid();
 
-        // Find surface at spawn
+        // Use the spawn point's Y directly — spawn chunks are always loaded,
+        // so this won't trigger chunk generation, and the Y is guaranteed valid.
         BlockPos spawnPos = overworld.getSpawnPoint().getPos();
-        BlockPos surfacePos = overworld.getTopPosition(
-                net.minecraft.world.Heightmap.Type.WORLD_SURFACE,
-                new BlockPos(spawnPos.getX(), 0, spawnPos.getZ()));
-        double ty = surfacePos.getY() + 1.0;
+        double ty = spawnPos.getY() + 1.0;
 
         player.teleport(overworld, spawnPos.getX() + 0.5, ty, spawnPos.getZ() + 0.5,
                 java.util.Set.of(), player.getYaw(), player.getPitch(), true);
