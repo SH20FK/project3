@@ -35,7 +35,7 @@ public class Project3State extends PersistentState {
                     nbt -> fromNbt(nbt, null),
                     state -> state.writeNbt(new NbtCompound(), null)
             ),
-            null
+            new PersistentStateType.PersistentStateConfig(true, 100L)
     );
 
     /** System.currentTimeMillis() when /p3 start was run; 0 if not started. */
