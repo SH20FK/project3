@@ -815,11 +815,8 @@ public class Project3Command {
             Text coordsText = Text.literal(String.format("%.0f ~ %.0f", tx, tz))
                     .styled(style -> style
                             .withColor(Formatting.GREEN)
-                            .withClickEvent(new net.minecraft.text.ClickEvent(
-                                    net.minecraft.text.ClickEvent.Action.SUGGEST_COMMAND,
-                                    tpCommand))
-                            .withHoverEvent(new net.minecraft.text.HoverEvent(
-                                    net.minecraft.text.HoverEvent.Action.SHOW_TEXT,
+                            .withClickEvent(new net.minecraft.text.ClickEvent.SuggestCommand(tpCommand))
+                            .withHoverEvent(new net.minecraft.text.HoverEvent.ShowText(
                                     Text.literal("Нажмите Enter, затем ENTER для телепортации"))));
 
             source.sendFeedback(() -> Text.literal(String.format(
