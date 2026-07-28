@@ -804,29 +804,35 @@ public class Project3Command {
             double maxR = WorldBorderManager.getMaxRadius(spawnX, spawnZ, px, pz);
             double remaining = maxR - dist;
 
+            double tx = spawnX + dx / dist * maxR;
+            double tz = spawnZ + dz / dist * maxR;
+            BlockPos surfacePos = world.getTopPosition(
+                    net.minecraft.world.Heightmap.Type.WORLD_SURFACE,
+                    new BlockPos((int) tx, 0, (int) tz));
+            double ty = surfacePos.getY() + 1.0;
+
+            // Build clickable coordinates text
+            String tpCommand = String.format("/tp @s %.0f %.0f %.0f", tx, ty, tz);
+            Text coordsText = Text.literal(String.format("%.0f %.0f %.0f", tx, ty, tz))
+                    .styled(style -> style
+                            .withColor(Formatting.GREEN)
+                            .withClickEvent(new net.minecraft.text.ClickEvent(
+                                    net.minecraft.text.ClickEvent.Action.SUGGEST_COMMAND,
+                                    tpCommand))
+                            .withHoverEvent(new net.minecraft.text.HoverEvent(
+                                    net.minecraft.text.HoverEvent.Action.SHOW_TEXT,
+                                    Text.literal("Нажмите Enter, затем Enter, чтобы телепортироваться"))));
+
             source.sendFeedback(() -> Text.literal(String.format(
                     "§6=== Граница ===\n" +
                     "§7Расстояние от спавна: §f%.0f блоков\n" +
                     "§7Макс. радиус в этом направлении: §f%.0f блоков\n" +
                     "§7До границы: §e%.0f блоков\n" +
-                    "§7Направление: §b%s (%.0f°)",
+                    "§7Направление: §b%s (%.0f°)\n" +
+                    "§7Координаты границы: ",
                     dist, maxR, remaining,
                     angleToString(angle), Math.toDegrees(angle)
-            )), false);
-
-            // Teleport player to the border edge in their current direction
-            if (remaining > 0) {
-                double tx = spawnX + dx / dist * maxR;
-                double tz = spawnZ + dz / dist * maxR;
-                BlockPos surfacePos = world.getTopPosition(
-                        net.minecraft.world.Heightmap.Type.WORLD_SURFACE,
-                        new BlockPos((int) tx, 0, (int) tz));
-                double ty = surfacePos.getY() + 1.0;
-                player.teleport(world, tx, ty, tz, java.util.Set.of(), player.getYaw(), player.getPitch(), true);
-                source.sendFeedback(() -> Text.literal("Телепортированы к ближайшей точке границы.").formatted(Formatting.GREEN), false);
-            } else {
-                source.sendFeedback(() -> Text.literal("Вы уже за границей!").formatted(Formatting.RED), false);
-            }
+            )).append(coordsText), false);
 
             return 1;
         } catch (Exception e) {
