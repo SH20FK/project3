@@ -8,6 +8,7 @@ import com.project3.registry.ModRegistries;
 import com.project3.state.Project3State;
 import com.project3.world.CalibrationManager;
 import com.project3.world.GloomVoidTickHandler;
+import com.project3.world.WorldBorderManager;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.effect.StatusEffectInstance;
@@ -95,6 +96,7 @@ public final class PlayerEventHandler {
             Project3Mod.LOGGER.error("Error cleaning up player data on disconnect: {}", player.getName().getString(), e);
         }
         DreadManager.onDisconnect(player.getUuid());
+        WorldBorderManager.onDisconnect(player.getUuid());
         PlayerCooldowns.onDisconnect(player.getUuid());
     }
 
@@ -108,7 +110,7 @@ public final class PlayerEventHandler {
             state.setHappinessTicksLeft(player.getUuid(), happiness - 1);
             // The persistent state owns the real timer. An infinite vanilla effect intentionally
             // renders as **:** instead of leaking the remaining duration to the HUD.
-            player.addStatusEffect(new StatusEffectInstance(ModRegistries.HAPPINESS_EFFECT, -1, 0, true, false, true));
+            player.addStatusEffect(new StatusEffectInstance(ModRegistries.HAPPINESS_EFFECT, -1, 0, true, false, false));
             state.setGloomPermanent(player.getUuid(), false);
             state.setGloomTicksLeft(player.getUuid(), 0L);
             if (state.getGloomDepthTicks(player.getUuid()) > 0) {
@@ -163,12 +165,12 @@ public final class PlayerEventHandler {
             state.setGloomTicksLeft(player.getUuid(), 0L);
             state.addGloomDepthTicks(player.getUuid(), 1L);
             // See Happiness above: hide the state timer in the vanilla effect widget.
-            player.addStatusEffect(new StatusEffectInstance(ModRegistries.GLOOM_EFFECT, -1, 0, true, false, true));
+            player.addStatusEffect(new StatusEffectInstance(ModRegistries.GLOOM_EFFECT, -1, 0, true, false, false));
         }
 
         if (state.isUnnamedEffectActive(player.getUuid())) {
             if (player.getRandom().nextInt(600) == 0) {
-                player.addStatusEffect(new StatusEffectInstance(StatusEffects.INVISIBILITY, 100, 0, true, false, true));
+                player.addStatusEffect(new StatusEffectInstance(StatusEffects.INVISIBILITY, 100, 0, true, false, false));
             }
             if (player.getRandom().nextInt(1200) == 0) {
                 double dx = player.getX() + (player.getRandom().nextDouble() - 0.5) * 4.0;

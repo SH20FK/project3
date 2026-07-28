@@ -4,6 +4,7 @@ import com.project3.block.entity.ProducerBlockEntity;
 import com.project3.block.entity.renderer.PhantomBlockEntityRenderer;
 import com.project3.block.entity.renderer.ProducerBlockEntityRenderer;
 import com.project3.client.ClientNetworkHandlers;
+import com.project3.client.BorderVoidHandler;
 import com.project3.client.GloomVoidClientHandler;
 import com.project3.client.hud.ActiveAchievementHud;
 import com.project3.client.hud.DreadHandler;
@@ -50,6 +51,7 @@ public class Project3Client implements ClientModInitializer {
         HudRenderCallback.EVENT.register(ActiveAchievementHud::render);
         HudRenderCallback.EVENT.register((drawContext, renderTickCounter) -> {
             GloomVoidClientHandler.renderVignette(drawContext);
+            BorderVoidHandler.renderOverlay(drawContext);
         });
 
         // ── Register Client Tick ──────────────────────────────────────────
@@ -57,6 +59,7 @@ public class Project3Client implements ClientModInitializer {
             ActiveAchievementHud.tick();
             ParanoiaHandler.tick();
             DreadHandler.tick();
+            BorderVoidHandler.tick();
             GloomVoidClientHandler.tick(client);
 
             if (togglePanelKey != null) {

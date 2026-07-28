@@ -34,9 +34,7 @@ public class AchievementManager {
     private final List<AchievementDefinition> achievements = new ArrayList<>();
     private final Map<UUID, AchievementSyncPayload> lastSentPayloads = new java.util.concurrent.ConcurrentHashMap<>();
     private int tickAccum = 0;
-    // Enchanting consumes levels before the statistic is observed on the next server tick.
-    // Keep the previous tick's values to validate that the enchant was selected at level 30.
-    private final Map<UUID, Integer> lastExperienceLevels = new HashMap<>();
+    // Track enchant_item stat for ach_29 (only checked when player reaches level 30)
     private final Map<UUID, Integer> lastEnchantItemStats = new HashMap<>();
 
     public AchievementManager() {
@@ -194,11 +192,6 @@ public class AchievementManager {
 
     private void checkPlayer(ServerPlayerEntity player, Project3State state) {
         UUID uuid = player.getUuid();
-        int previousExperienceLevel = lastExperienceLevels.getOrDefault(uuid, player.experienceLevel);
-        int enchantItemStat = player.getStatHandler().getStat(net.minecraft.stat.Stats.CUSTOM.getOrCreateStat(
-                net.minecraft.util.Identifier.of("minecraft", "enchant_item")));
-        int previousEnchantItemStat = lastEnchantItemStats.getOrDefault(uuid, enchantItemStat);
-        boolean enchantedAtLevelThirty = previousExperienceLevel >= 30 && enchantItemStat > previousEnchantItemStat;
 
         Set<String> completed = state.getCompletedAchievements(uuid);
 
@@ -226,11 +219,25 @@ public class AchievementManager {
             }
 
             boolean triggered;
-            // This trigger needs the experience level from before enchanting, so it
-            // cannot use the generic cumulative-stat path.
+            // ach_29: Detect enchanting at level 30+ via the enchant_item statistic.
+            // We only call getStat() when the player is already level 30+ to avoid
+            // triggering advancement tracker initialisation during server startup.
             if (achievement.getTrigger().getType() == AchievementTrigger.Type.CUSTOM
                     && achievement.getTrigger().getTarget().equals("enchant_level_30")) {
-                triggered = enchantedAtLevelThirty;
+                if (player.experienceLevel >= 30) {
+                    try {
+                        int current = player.getStatHandler().getStat(net.minecraft.stat.Stats.CUSTOM.getOrCreateStat(
+                                net.minecraft.util.Identifier.of("minecraft", "enchant_item")));
+                        int previous = lastEnchantItemStats.getOrDefault(uuid, current);
+                        triggered = current > previous;
+                        lastEnchantItemStats.put(uuid, current);
+                    } catch (Exception e) {
+                        LOGGER.warn("Could not read enchant_item stat for {}: {}", player.getName().getString(), e.getMessage());
+                        triggered = false;
+                    }
+                } else {
+                    triggered = false;
+                }
             } else if (achievement.getTrigger().isStatCumulative()) {
                 Integer baseline = state.getAchievementBaseline(player.getUuid(), id);
                 int currentValue = achievement.getTrigger().getCurrentValue(player);
@@ -249,8 +256,6 @@ public class AchievementManager {
             }
         }
 
-        lastExperienceLevels.put(uuid, player.experienceLevel);
-        lastEnchantItemStats.put(uuid, enchantItemStat);
     }
 
     private int getLevelReward(int questNum, net.minecraft.world.World world) {
@@ -341,11 +346,11 @@ public class AchievementManager {
         player.removeStatusEffect(net.minecraft.entity.effect.StatusEffects.SLOWNESS);
         player.removeStatusEffect(net.minecraft.entity.effect.StatusEffects.WEAKNESS);
 
-        // Permanent Speed I and Luck as reward
+        // Permanent Speed I and Luck as reward (hidden from inventory)
         player.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(
-                net.minecraft.entity.effect.StatusEffects.SPEED, -1, 0, false, false));
+                net.minecraft.entity.effect.StatusEffects.SPEED, -1, 0, false, false, false));
         player.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(
-                net.minecraft.entity.effect.StatusEffects.LUCK, -1, 0, false, false));
+                net.minecraft.entity.effect.StatusEffects.LUCK, -1, 0, false, false, false));
 
         // Max happiness
         com.project3.player.PlayerStateManager.grantHappiness(player, state, 120000L);

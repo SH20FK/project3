@@ -133,20 +133,26 @@ public class MixinServerPlayerEntity {
             ServerWorld netherWorld = ((ServerWorld) player.getEntityWorld()).getServer().getWorld(World.NETHER);
             if (netherWorld != null) {
                 String savedPos = state.getLastNetherPortalPos(player.getUuid());
-                Vec3d targetPos;
+                double sx, sy, sz;
                 if (savedPos != null) {
                     try {
                         String[] parts = savedPos.split(",");
-                        double sx = Double.parseDouble(parts[0]);
-                        double sy = Double.parseDouble(parts[1]);
-                        double sz = Double.parseDouble(parts[2]);
-                        targetPos = new Vec3d(sx, sy, sz);
+                        sx = Double.parseDouble(parts[0]);
+                        sy = Double.parseDouble(parts[1]);
+                        sz = Double.parseDouble(parts[2]);
                     } catch (Exception e) {
-                        targetPos = new Vec3d(0.5, 64, 0.5);
+                        sx = 0.5; sy = 64; sz = 0.5;
                     }
                 } else {
-                    targetPos = new Vec3d(0.5, 64, 0.5);
+                    sx = 0.5; sy = 64; sz = 0.5;
                 }
+                // Find safe surface Y in the Nether at the saved X/Z
+                int safeY = netherWorld.getTopPosition(net.minecraft.world.Heightmap.Type.MOTION_BLOCKING,
+                        new BlockPos((int)sx, 0, (int)sz)).getY();
+                if (safeY <= netherWorld.getBottomY()) {
+                    safeY = (int)sy; // fallback to saved Y
+                }
+                Vec3d targetPos = new Vec3d(sx, safeY + 1.0, sz);
 
                 TeleportTarget newTarget = new TeleportTarget(
                     netherWorld,
