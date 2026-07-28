@@ -745,6 +745,9 @@ public class Project3Command {
             double spawnX = spawnPos.getX() + 0.5;
             double spawnZ = spawnPos.getZ() + 0.5;
 
+            // Use player Y as approximate ground height to avoid chunk generation
+            double playerY = player.getY();
+
             // Spawn a ring of particles along the border in all directions
             int points = 72;
             for (int i = 0; i < points; i++) {
@@ -757,15 +760,10 @@ public class Project3Command {
                 double bx = spawnX + nx * maxR;
                 double bz = spawnZ + nz * maxR;
 
-                BlockPos surfacePos = world.getTopPosition(
-                        net.minecraft.world.Heightmap.Type.WORLD_SURFACE,
-                        new BlockPos((int) bx, 0, (int) bz));
-                double by = surfacePos.getY() + 1.0;
-
                 world.spawnParticles(
                         ParticleTypes.FLAME,
-                        bx, by, bz,
-                        1, 0.1, 0.1, 0.1, 0.01
+                        bx, playerY, bz,
+                        1, 0.1, 2.0, 0.1, 0.01
                 );
             }
 
@@ -800,20 +798,21 @@ public class Project3Command {
             double dist = Math.sqrt(dx * dx + dz * dz);
             double angle = Math.atan2(dz, dx);
 
+            if (dist < 0.01) {
+                source.sendFeedback(() -> Text.literal("Вы на спавне. Направление не определено.").formatted(Formatting.YELLOW), false);
+                return 0;
+            }
+
             // Find distance to border in the player's current direction
             double maxR = WorldBorderManager.getMaxRadius(spawnX, spawnZ, px, pz);
             double remaining = maxR - dist;
 
             double tx = spawnX + dx / dist * maxR;
             double tz = spawnZ + dz / dist * maxR;
-            BlockPos surfacePos = world.getTopPosition(
-                    net.minecraft.world.Heightmap.Type.WORLD_SURFACE,
-                    new BlockPos((int) tx, 0, (int) tz));
-            double ty = surfacePos.getY() + 1.0;
 
-            // Build clickable coordinates text
-            String tpCommand = String.format("/tp @s %.0f %.0f %.0f", tx, ty, tz);
-            Text coordsText = Text.literal(String.format("%.0f %.0f %.0f", tx, ty, tz))
+            // Build clickable coordinates text (no getTopPosition — use player Y to avoid chunk gen)
+            String tpCommand = String.format("/tp @s %.0f ~ %.0f", tx, tz);
+            Text coordsText = Text.literal(String.format("%.0f ~ %.0f", tx, tz))
                     .styled(style -> style
                             .withColor(Formatting.GREEN)
                             .withClickEvent(new net.minecraft.text.ClickEvent(
@@ -821,7 +820,7 @@ public class Project3Command {
                                     tpCommand))
                             .withHoverEvent(new net.minecraft.text.HoverEvent(
                                     net.minecraft.text.HoverEvent.Action.SHOW_TEXT,
-                                    Text.literal("Нажмите Enter, затем Enter, чтобы телепортироваться"))));
+                                    Text.literal("Нажмите Enter, затем ENTER для телепортации"))));
 
             source.sendFeedback(() -> Text.literal(String.format(
                     "§6=== Граница ===\n" +
