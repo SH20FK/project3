@@ -315,7 +315,7 @@ public final class GloomVoidTickHandler {
             boolean newLit = !isCurrentlyLit;
             PlayerCooldowns.PORTAL_IS_LIT.put(player.getUuid(), newLit);
 
-            int hash = Math.abs(player.getUuid().hashCode());
+            int hash = player.getUuid().hashCode() & 0x7FFFFFFF;
             double vx = (hash % 1000) * 1000.0;
             double vy = 64.0;
             double vz = ((hash / 1000) % 1000) * 1000.0;

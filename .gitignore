@@ -18,6 +18,14 @@ graphify-out/
 .sudo_as_admin_successful
 .agents/
 
+# Build logs
+build_logs*/
+build_logs*.zip
+logs*/
+logs*.zip
+job_log.txt
+sh20fklogs*.zip
+
 # Temp/misc
 com/
 META-INF/
