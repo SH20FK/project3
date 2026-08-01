@@ -177,6 +177,36 @@ public class NetherCorruptionEvent {
                         net.minecraft.block.Block.NOTIFY_LISTENERS | net.minecraft.block.Block.FORCE_STATE);
                 }
 
+                // Толчки землетрясения
+                float progressRatio = currentTick / (float) CORRUPTION_TICKS;
+                float shakeChance = 0.02f + progressRatio * 0.15f;
+                if (rng.nextFloat() < shakeChance) {
+                    float shakeStrength = 0.15f + progressRatio * 0.5f;
+                    Project3Mod.sendShakeToAll(server, shakeStrength);
+                }
+
+                // Огненные кольца вокруг волны порчи
+                if (currentTick % 10 == 0) {
+                    double ringRadius = 5 + progressRatio * (RADIUS - 5);
+                    int points = 24;
+                    for (int i = 0; i < points; i++) {
+                        double angle = (2 * Math.PI * i) / points;
+                        double px = cx + Math.cos(angle) * ringRadius;
+                        double pz = cz + Math.sin(angle) * ringRadius;
+                        int py = world.getTopY(Heightmap.Type.WORLD_SURFACE, (int) px, (int) pz);
+                        world.spawnParticles(
+                            net.minecraft.particle.ParticleTypes.FLAME,
+                            px, py + 0.5, pz,
+                            1, 0, 0.05, 0, 0.01
+                        );
+                    }
+                }
+
+                // Мощный финальный толчок за 2 секунды до дисконнекта
+                if (currentTick == CORRUPTION_TICKS - 42) {
+                    Project3Mod.sendShakeToAll(server, 1.0f);
+                }
+
                 // На последнем тике — дисконнект
                 if (currentTick >= CORRUPTION_TICKS - 2) {
                     Project3Mod.schedule(40, () -> fakeDisconnectAll(server));

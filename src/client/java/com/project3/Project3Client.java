@@ -3,6 +3,7 @@ package com.project3;
 import com.project3.block.entity.ProducerBlockEntity;
 import com.project3.block.entity.renderer.PhantomBlockEntityRenderer;
 import com.project3.block.entity.renderer.ProducerBlockEntityRenderer;
+import com.project3.client.CameraShakeManager;
 import com.project3.client.ClientNetworkHandlers;
 import com.project3.client.BorderVoidHandler;
 import com.project3.client.GloomVoidClientHandler;
@@ -57,6 +58,7 @@ public class Project3Client implements ClientModInitializer {
         // ── Register Client Tick ──────────────────────────────────────────
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             ActiveAchievementHud.tick();
+            CameraShakeManager.tick();
             ParanoiaHandler.tick();
             DreadHandler.tick();
             BorderVoidHandler.tick();

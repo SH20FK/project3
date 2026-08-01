@@ -1,5 +1,6 @@
 package com.project3.client;
 
+import com.project3.client.CameraShakeManager;
 import com.project3.client.hud.ActiveAchievementHud;
 import com.project3.client.hud.DreadHandler;
 import com.project3.client.hud.ParanoiaHandler;
@@ -16,6 +17,10 @@ public final class ClientNetworkHandlers {
     private static long lastChunkReloadTime = 0L;
 
     public static void registerAll() {
+        ClientPlayNetworking.registerGlobalReceiver(CameraShakePayload.ID, (payload, context) -> {
+            context.client().execute(() -> CameraShakeManager.addTrauma(payload.traumaAmount()));
+        });
+
         ClientPlayNetworking.registerGlobalReceiver(CameraRotatePayload.ID, (payload, context) -> {
             context.client().execute(() -> {
                 var player = context.client().player;
