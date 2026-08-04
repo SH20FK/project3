@@ -65,6 +65,7 @@ public final class PlayerStateManager {
         state.setGloomPermanent(player.getUuid(), false);
         state.setGloomTicksLeft(player.getUuid(), 0L);
         state.setGloomDepthTicks(player.getUuid(), 0L);
+        state.setUnnamedEffectActive(player.getUuid(), false);
         player.removeStatusEffect(ModRegistries.GLOOM_EFFECT);
         
         syncPlayerState(player, state);

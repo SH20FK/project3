@@ -82,6 +82,15 @@ public class AchievementTrigger {
         TERRACOTTA_PATHS = Collections.unmodifiableSet(terracotta);
     }
 
+    /** Returns total food items used (eaten) by the player across all food types. */
+    public static int getTotalFoodEaten(ServerPlayerEntity player) {
+        int total = 0;
+        for (Item item : FOOD_ITEMS) {
+            total += player.getStatHandler().getStat(Stats.USED.getOrCreateStat(item));
+        }
+        return total;
+    }
+
     public AchievementTrigger(Type type, String target, int threshold) {
         this(type, target, threshold, false);
     }

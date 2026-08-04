@@ -44,6 +44,7 @@ public final class PlayerEventHandler {
         int total = 75;
         long happiness = state.getHappinessTicksLeft(player.getUuid());
         boolean isGloom = state.isGloomPermanent(player.getUuid()) || state.getGloomTicksLeft(player.getUuid()) > 0;
+        boolean isUnnamed = state.isUnnamedEffectActive(player.getUuid());
 
         player.sendMessage(Text.literal("§7§m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"), false);
         player.sendMessage(Text.literal("§6§lProject3 §7| §fДобро пожаловать, " + player.getName().getString()), false);
@@ -51,6 +52,8 @@ public final class PlayerEventHandler {
         if (happiness > 0) {
             int minutes = (int) (happiness / 1200);
             player.sendMessage(Text.literal("§7Состояние: §a§lСчастье §7(§f" + minutes + " мин§7)"), false);
+        } else if (isUnnamed) {
+            player.sendMessage(Text.literal("§7Состояние: §4§lБезымянный"), false);
         } else if (isGloom) {
             player.sendMessage(Text.literal("§7Состояние: §4§lУныние"), false);
         } else {
@@ -136,7 +139,7 @@ public final class PlayerEventHandler {
             }
 
             if (happiness == 1) {
-                state.setGloomPermanent(player.getUuid(), true);
+                state.setUnnamedEffectActive(player.getUuid(), true);
                 player.playSound(SoundEvents.BLOCK_BEACON_DEACTIVATE, 1.0f, 0.6f);
                 player.playSound(SoundEvents.ENTITY_WITHER_SPAWN, 0.5f, 0.5f);
                 player.networkHandler.sendPacket(new TitleS2CPacket(
@@ -161,11 +164,9 @@ public final class PlayerEventHandler {
                 player.playSound(SoundEvents.BLOCK_NOTE_BLOCK_CHIME.value(), 0.8f, 0.5f);
             }
         } else {
-            state.setGloomPermanent(player.getUuid(), true);
+            state.setUnnamedEffectActive(player.getUuid(), true);
             state.setGloomTicksLeft(player.getUuid(), 0L);
             state.addGloomDepthTicks(player.getUuid(), 1L);
-            // See Happiness above: hide the state timer in the vanilla effect widget.
-            player.addStatusEffect(new StatusEffectInstance(ModRegistries.GLOOM_EFFECT, -1, 0, true, false, false));
         }
 
         if (state.isUnnamedEffectActive(player.getUuid())) {
@@ -214,6 +215,18 @@ public final class PlayerEventHandler {
         DreadManager.checkOverload(player);
 
         if (server.getTicks() % 20 == 0) {
+            int totalFoodEaten = com.project3.achievement.AchievementTrigger.getTotalFoodEaten(player);
+            int baseline = PlayerCooldowns.FOOD_EATEN_BASELINE.getOrDefault(player.getUuid(), totalFoodEaten);
+            if (baseline == 0 && totalFoodEaten > 0) {
+                PlayerCooldowns.FOOD_EATEN_BASELINE.put(player.getUuid(), totalFoodEaten);
+                baseline = totalFoodEaten;
+            }
+            if (totalFoodEaten - baseline >= 30) {
+                PlayerStateManager.grantHappiness(player, state, 6000L);
+                PlayerCooldowns.FOOD_EATEN_BASELINE.put(player.getUuid(), totalFoodEaten);
+                player.sendMessage(Text.literal("§a§l[Система] §7За насыщение — ячейка счастья восстановлена."), false);
+            }
+
             PlayerStateManager.syncPlayerState(player, state);
             int dread = DreadManager.getDread(player);
             int threshold = DreadManager.getThreshold(player);

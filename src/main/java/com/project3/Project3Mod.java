@@ -309,9 +309,15 @@ public class Project3Mod implements ModInitializer {
             
             Project3State p3State = Project3State.getOrCreate(((ServerWorld) spe.getEntityWorld()).getServer());
             boolean hasGloom = p3State.getGloomTicksLeft(spe.getUuid()) > 0 || p3State.isGloomPermanent(spe.getUuid());
-            
-            if (hasGloom && isOreBlock(blockState)) {
-                if (world.getRandom().nextFloat() < 0.02f) { // 2% chance
+            boolean hasUnnamed = p3State.isUnnamedEffectActive(spe.getUuid());
+
+            if ((hasGloom || hasUnnamed) && isOreBlock(blockState)) {
+                float bugChance = 0.02f;
+                if (hasUnnamed) {
+                    long depth = p3State.getGloomDepthTicks(spe.getUuid());
+                    bugChance = 0.05f + Math.min(depth / 24000f, 1f) * 0.08f;
+                }
+                if (world.getRandom().nextFloat() < bugChance) {
                     BlockState replacement;
                     if (blockState.isOf(Blocks.DEEPSLATE_COAL_ORE) || blockState.isOf(Blocks.DEEPSLATE_COPPER_ORE) || 
                         blockState.isOf(Blocks.DEEPSLATE_IRON_ORE) || blockState.isOf(Blocks.DEEPSLATE_GOLD_ORE) || 
@@ -356,10 +362,24 @@ public class Project3Mod implements ModInitializer {
                         ItemStack head = new ItemStack(Items.PLAYER_HEAD);
                         head.set(net.minecraft.component.DataComponentTypes.PROFILE,
                                 net.minecraft.component.type.ProfileComponent.ofStatic(targetPlayer.getGameProfile()));
-                        net.minecraft.entity.ItemEntity itemEntity = new net.minecraft.entity.ItemEntity(
-                                world, targetPlayer.getX(), targetPlayer.getY(), targetPlayer.getZ(), head
+
+                        if (spe.getInventory().getEmptySlot() != -1) {
+                            spe.getInventory().offerOrDrop(head);
+                        } else {
+                            net.minecraft.util.math.Vec3d dir = spe.getPos().subtract(targetPlayer.getPos()).normalize();
+                            net.minecraft.entity.ItemEntity itemEntity = new net.minecraft.entity.ItemEntity(
+                                    world, targetPlayer.getX(), targetPlayer.getY() + 1.0, targetPlayer.getZ(), head
+                            );
+                            itemEntity.setVelocity(dir.x * 0.4, 0.3, dir.z * 0.4);
+                            world.spawnEntity(itemEntity);
+                        }
+
+                        ((ServerWorld) world).spawnParticles(
+                                new net.minecraft.particle.DustParticleEffect(
+                                        new org.joml.Vector3f(0.8f, 0.05f, 0.05f), 1.0f),
+                                targetPlayer.getX(), targetPlayer.getY() + 1.0, targetPlayer.getZ(),
+                                15, 0.3, 0.5, 0.3, 0.0
                         );
-                        world.spawnEntity(itemEntity);
                         world.playSound(null, targetPlayer.getX(), targetPlayer.getY(), targetPlayer.getZ(),
                                 SoundEvents.ENTITY_SHEEP_SHEAR, SoundCategory.PLAYERS, 1.0f, 1.0f);
                         return ActionResult.SUCCESS;

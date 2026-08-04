@@ -68,6 +68,10 @@ public final class PlayerCooldowns {
 
     public static final Map<UUID, Float> LAST_MACE_ATTACK_FALL_DISTANCE = new ConcurrentHashMap<>();
 
+    // ─── Food eating counter (for 30-food → happiness cell mechanic) ─────────
+
+    public static final Map<UUID, Integer> FOOD_EATEN_BASELINE = new ConcurrentHashMap<>();
+
     // ─── Cleanup ────────────────────────────────────────────────────────────
 
     /** Remove all per-player data on disconnect. */
@@ -95,6 +99,7 @@ public final class PlayerCooldowns {
         WALL_VIOLATION_COUNT.remove(uuid);
         PUMPKIN_HINT_SENT.remove(uuid);
         LAST_MACE_ATTACK_FALL_DISTANCE.remove(uuid);
+        FOOD_EATEN_BASELINE.remove(uuid);
     }
 
     /** Initialize portal state for a new player entering Gloom Void. */

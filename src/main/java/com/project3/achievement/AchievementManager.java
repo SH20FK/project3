@@ -295,13 +295,12 @@ public class AchievementManager {
             )));
         ((net.minecraft.server.world.ServerWorld)player.getEntityWorld()).getServer().getPlayerManager().broadcast(msg, false);
 
-        ItemStack cookies = new ItemStack(Items.COOKIE, 10);
-        player.getInventory().offerOrDrop(cookies);
+        player.addStatusEffect(new StatusEffectInstance(StatusEffects.SATURATION, 400, 0, false, false, true));
 
         int xpLevels = getLevelReward(questNum, player.getEntityWorld());
         player.addExperienceLevels(xpLevels);
 
-        com.project3.player.PlayerStateManager.grantHappiness(player, state, 72000L);
+        com.project3.player.PlayerStateManager.grantHappiness(player, state, 36000L);
         state.setUnnamedEffectActive(player.getUuid(), false);
 
         grantVanillaAdvancement(player, achievement.getId());
