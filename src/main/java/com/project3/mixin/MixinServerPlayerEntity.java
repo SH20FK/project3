@@ -61,7 +61,14 @@ public class MixinServerPlayerEntity {
             Project3Mod.Act act = Project3Mod.getAct(state);
             boolean locked = !state.isSeasonStarted() || CalibrationManager.calibrationTicksLeft > 0 || (act == Project3Mod.Act.I && !state.isNetherForceUnlocked());
             if (locked && !player.isCreative()) {
-                player.sendMessage(Text.literal("§c[Система] Доступ в Незер заблокирован."), false);
+                player.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.BLINDNESS, 100, 0, false, false, true));
+                player.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.SLOWNESS, 100, 0, false, false, true));
+                player.sendMessage(Text.literal("§c[Система] §7Измерение недоступно. Портал разрушен."), false);
+                breakNearbyPortal((ServerWorld) player.getEntityWorld(), player.getBlockPos(), net.minecraft.block.Blocks.NETHER_PORTAL);
+                net.minecraft.util.math.Vec3d look = player.getRotationVec(1.0f);
+                player.setVelocity(-look.x * 0.8, 0.4, -look.z * 0.8);
+                player.velocityModified = true;
+                player.playSound(net.minecraft.sound.SoundEvents.BLOCK_GLASS_BREAK, 1.0f, 0.5f);
                 cir.setReturnValue(player);
                 return;
             }
@@ -70,7 +77,14 @@ public class MixinServerPlayerEntity {
             Project3Mod.Act act = Project3Mod.getAct(state);
             boolean locked = !state.isSeasonStarted() || CalibrationManager.calibrationTicksLeft > 0 || ((act == Project3Mod.Act.I || act == Project3Mod.Act.II || act == Project3Mod.Act.III) && !state.isEndForceUnlocked());
             if (locked && !player.isCreative()) {
-                player.sendMessage(Text.literal("§c[Система] Доступ в Энд заблокирован."), false);
+                player.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.BLINDNESS, 100, 0, false, false, true));
+                player.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.SLOWNESS, 100, 0, false, false, true));
+                player.sendMessage(Text.literal("§c[Система] §7Измерение недоступно. Портал разрушен."), false);
+                breakNearbyPortal((ServerWorld) player.getEntityWorld(), player.getBlockPos(), net.minecraft.block.Blocks.END_PORTAL);
+                net.minecraft.util.math.Vec3d look = player.getRotationVec(1.0f);
+                player.setVelocity(-look.x * 0.8, 0.4, -look.z * 0.8);
+                player.velocityModified = true;
+                player.playSound(net.minecraft.sound.SoundEvents.BLOCK_GLASS_BREAK, 1.0f, 0.5f);
                 cir.setReturnValue(player);
                 return;
             }
@@ -195,5 +209,19 @@ public class MixinServerPlayerEntity {
             .append(Text.literal(" [" + completed + "]").formatted(net.minecraft.util.Formatting.GRAY));
             
         cir.setReturnValue(customName);
+    }
+
+    private static void breakNearbyPortal(ServerWorld world, BlockPos center, net.minecraft.block.Block portalType) {
+        for (int dx = -4; dx <= 4; dx++) {
+            for (int dy = -4; dy <= 4; dy++) {
+                for (int dz = -4; dz <= 4; dz++) {
+                    BlockPos checkPos = center.add(dx, dy, dz);
+                    if (world.getBlockState(checkPos).isOf(portalType)) {
+                        world.setBlockState(checkPos, net.minecraft.block.Blocks.AIR.getDefaultState(), net.minecraft.block.Block.NOTIFY_ALL);
+                        world.playSound(null, checkPos, net.minecraft.sound.SoundEvents.BLOCK_PORTAL_TRAVEL, net.minecraft.sound.SoundCategory.BLOCKS, 0.3f, 0.5f);
+                    }
+                }
+            }
+        }
     }
 }

@@ -275,17 +275,7 @@ public class Project3Mod implements ModInitializer {
                         && (!state.isSeasonStarted() || com.project3.world.CalibrationManager.calibrationTicksLeft > 0
                         || !state.isNetherForceUnlocked());
                 if (locked) {
-                    sw.createExplosion(null, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 4.0f, false, World.ExplosionSourceType.NONE);
-                    serverPlayer.damage(sw, sw.getDamageSources().explosion(null, null), 4.0f);
-                    sw.playSound(null, pos, SoundEvents.BLOCK_PORTAL_TRAVEL, SoundCategory.BLOCKS, 1.0f, 0.5f);
-                    sw.playSound(null, pos, SoundEvents.BLOCK_ANVIL_LAND, SoundCategory.BLOCKS, 1.0f, 1.0f);
-                    double centerX = pos.getX() + 0.5;
-                    double centerY = pos.getY() + 0.5;
-                    double centerZ = pos.getZ() + 0.5;
-                    sw.spawnParticles(ParticleTypes.PORTAL, centerX, centerY - 1.0, centerZ, 80, 0.6, 2.0, 0.6, 0.03);
-                    BlockPos offsetPos = pos.offset(hitResult.getSide());
-                    sw.updateListeners(offsetPos, sw.getBlockState(offsetPos), sw.getBlockState(offsetPos), 3);
-                    return ActionResult.FAIL;
+                    sw.playSound(null, pos, SoundEvents.BLOCK_PORTAL_TRIGGER, SoundCategory.BLOCKS, 0.5f, 0.4f);
                 }
             }
 
@@ -293,9 +283,7 @@ public class Project3Mod implements ModInitializer {
             if (isEnderEye && clickedBlock == Blocks.END_PORTAL_FRAME) {
                 boolean locked = !serverPlayer.isCreative() && !state.isEndForceUnlocked();
                 if (locked) {
-                    sw.playSound(null, pos, SoundEvents.BLOCK_GLASS_BREAK, SoundCategory.BLOCKS, 1.0f, 1.0f);
-                    sw.updateListeners(pos, clickedState, clickedState, 3);
-                    return ActionResult.FAIL;
+                    sw.playSound(null, pos, SoundEvents.BLOCK_BEACON_POWER_SELECT, SoundCategory.BLOCKS, 0.5f, 0.4f);
                 }
             }
 
